@@ -1,0 +1,45 @@
+    #agenda {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: auto;
+      border:1px solid black;
+    }
+    #agenda th {
+      background-color: #f0f0f0;
+      border: 1px solid #aaa;
+      height: 2em;
+    }
+
+  #firstCol {
+    width: 1%;
+    white-space: nowrap;
+  }
+    #agenda td, #agenda th {
+      border-left:1px solid grey;
+      border-right:1px solid grey;
+      white-space: pre;
+        padding: 2px;
+      font-size: 12px;
+      text-align: center;
+  }
+
+    #agenda td {
+      height: 0.4em;
+      /*border:none;*/
+    }
+    #agenda td:first-child,
+    #agenda th:first-child {
+      padding: 0 12px; /* adjust as needed */
+    }
+
+/* Make every even row’s bottom border red */
+#agenda tbody tr:nth-child(4n+0) td {border-top: 1px dashed #80808030;}
+#agenda tbody tr:nth-child(4n+1) td {border-top: 1px solid #46464640;}
+#agenda tbody tr:nth-child(4n+2) td {border-top: 1px dashed #80808030;}
+#agenda tbody tr:nth-child(4n+3) td {border-top: 1px solid #80808030;}
+
+    #agenda .event {
+      background-color: #cce5ff;
+      font-weight: bold;
+      border: 1px solid black !important;
+    }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hebrew University Schedule Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='agenda.css') }}">
+</head>
+<body>
+    <div id="agendaContainer"></div>
+    <footer></footer>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script>
+        const data = {{ schedule_data | tojson }};
+        createAgenda(data);
+
+
+    </script>
+    <div>
+
+        <button id="getNextBtn_post">Get Next (POST)</button>
+        <input id="jumpInput" placeholder="Enter ID and press Enter" />
+
+<script>
+document.getElementById('jumpInput').addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+    const id = event.target.value.trim(); // get input value
+    if (id) {
+      // Redirect to a dynamic URL
+      window.location.href = `${id}`;
+    }
+  }
+});
+
+</script>
+
+    </div>
+
+</body>
+</html>

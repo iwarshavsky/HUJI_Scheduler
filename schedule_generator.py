@@ -2,6 +2,7 @@ import io
 import json
 import os
 import struct
+from datetime import datetime, timedelta
 
 from flask import Flask
 
@@ -89,8 +90,11 @@ class CourseBlock:
 
             self._split_hour_column(raw_attributes)
 
-            formatted_attributes = {key: list(map(lambda item: self._format(key, item), raw_attributes[key])) for key in
+            formatted_attributes = {key: list(map(lambda item: self.format(key, item), raw_attributes[key])) for key in
                                     keys}
+
+            # formatted_attributes['time_start_slot'] = [self.convert_time_to_slot(t) for t in formatted_attributes['time_start']]
+            # formatted_attributes['time_finish_slot'] = [self.convert_time_to_slot(t) for t in formatted_attributes['time_finish']]
 
             self.course_num = course_num
             self.group = formatted_attributes.get("groups")[0]
@@ -98,7 +102,9 @@ class CourseBlock:
             # TODO - check for empty rows
             # TODO - custom events
             self.event_list = self._make_event_list(formatted_attributes,
-                                                    keys=["days", "time_start", "time_finish", "lesson", "places", "note"])
+                                                    keys=["days", "time_start", "time_finish", "lesson", "places",
+                                                          "note"])
+
             self.lesson_type = formatted_attributes.get("lesson")[0]
 
         if data_dict:
@@ -152,28 +158,23 @@ class CourseBlock:
         return events
 
     @staticmethod
-    def _format(key, value):
-
-        def convert_time(time_str):
-            """
-            Convert to 15 minute intervals starting from 8AM
-            """
-            hour, minute = time_str.split(":")
-            time_val = int((int(hour) - 8) * 4 + int(minute) / 15)
-            return time_val
+    def format(key, value):
 
         if key == "semester":
             semester_mapping = {"סמסטר א": 0, "סמסטר ב": 1}
             return semester_mapping[value]
         elif key == "days":
             v = value.replace("יום ", "").replace("'", "")
-            return ord(v) - 1487  # Convert Hebrew letter to corresponding number
+            return ord(v) - 1488  # Convert Hebrew letter to corresponding number
         elif key in ["time_start", "time_finish"]:
-            return convert_time(value)
             pass
+            # t = datetime.strptime(value, "%-H:%M")
+            # return t  # timedelta(hours=t.hour, minutes=t.minute)
+            # return convert_time(value)
         elif key in "groups":
             v = value.replace("קבוצה (", "").replace(")", "")
             return v
+            pass
         else:
             pass
 
@@ -189,22 +190,25 @@ class Course:
         self.course = course
         self.year = year
         self.semester = semester
-        self.pool_dict = {}
-        response = make_request(course, year)
+        if pool_dict:
+            self.pool_dict = pool_dict
+        else:
+            self.pool_dict = {}
+            response = make_request(course, year)
 
-        soup = BeautifulSoup(response, 'html.parser')
+            soup = BeautifulSoup(response, 'html.parser')
 
-        COURSE_TABLE = "grid-container-wrapper"
-        FIRST_ROW = "title-row"
-        course_table = soup.find("div", COURSE_TABLE)
-        soup.prettify()
+            COURSE_TABLE = "grid-container-wrapper"
+            FIRST_ROW = "title-row"
+            course_table = soup.find("div", COURSE_TABLE)
+            soup.prettify()
 
-        # Loop through children, first child has class="row title-row", should be ignored, the other have class="row"
-        for row in course_table.find_all("div", recursive=False):
-            if FIRST_ROW in row['class']:  # Ignore first row
-                continue
-            session_group = CourseBlock(self.course, row)
-            self.add_block(session_group)
+            # Loop through children, first child has class="row title-row", should be ignored, the other have class="row"
+            for row in course_table.find_all("div", recursive=False):
+                if FIRST_ROW in row['class']:  # Ignore first row
+                    continue
+                session_group = CourseBlock(self.course, row)
+                self.add_block(session_group)
 
             # print(row)
         # categorize Course Blocks by activity type - we must choose one of each activity type
@@ -224,6 +228,7 @@ class Schedule:
     """
     SLOTS = 66
     DAYS = 6
+    BASEHOUR = 8
 
     def __init__(self, data=None, blocks=None):
 
@@ -253,10 +258,35 @@ class Schedule:
         d = {i: self.blocks[i].__dict__ for i in range(len(self.blocks))}
         return d
 
-    def add_block(self, block):
+    @staticmethod
+    def convert_time(origin, dest_class, basehour=0):
+        if isinstance(origin, dest_class):
+            return origin
+        if isinstance(origin, int) and dest_class is str:
+            hour = (origin // 4) + basehour
+            minutes = (origin % 4) * 15
+            return f"{str(hour)}:{str(minutes)}"
+        elif isinstance(origin, str) and dest_class is datetime:
+            if not origin or ":" not in origin:
+                return None
+            hour_str, minute_str = origin.split(":")
+            return datetime.strptime(f"{hour_str:0>2}:{minute_str}", "%H:%M")
+        elif isinstance(origin, int) and dest_class is datetime:  # composition
+            return Schedule.convert_time(Schedule.convert_time(origin, str, basehour), datetime)
+        elif isinstance(origin, datetime) and dest_class is str:
+            return origin.strftime("%H:%M")
+        elif isinstance(origin, str) and dest_class is int:
+            hour, minute = origin.split(":")
+            time_val = int((int(hour) - basehour) * 4 + int(minute) / 15)
+            return time_val
+        elif isinstance(origin, datetime) and dest_class is int:
+            return Schedule.convert_time(Schedule.convert_time(origin, str, basehour), int)
+
+    def add_block(self, block: CourseBlock):
         for event in block.event_list:
             day = event["days"]
-            for t in range(event["time_start"], event["time_finish"]):
+            for t in range(self.convert_time(event["time_start"], int, basehour=self.BASEHOUR),
+                           self.convert_time(event["time_finish"], int, basehour=self.BASEHOUR)):
                 if self[day, t]:
                     return None
                 self[day, t] = str(block.course_num) + " " + str(block.group) + " " + block.lesson_type
@@ -286,37 +316,40 @@ class Schedule:
         ws = wb["Results"]
         for block in self.blocks:
             for event in block.event_list:
-                ws.cell(row=event['time_start']+2,
-                        column=event['days']+ 1,
+                ws.cell(row=event['time_start'] + 2,
+                        column=event['days'] + 1,
                         value='\n'.join([block.course_num, event['lesson'], event['places']]))
-                ws.merge_cells(start_row=event['time_start']+2,
-                               start_column=event['days']+1,
-                               end_row=event['time_finish']+2,
-                               end_column=event['days']+1)
+                ws.merge_cells(start_row=event['time_start'] + 2,
+                               start_column=event['days'] + 1,
+                               end_row=event['time_finish'] + 2,
+                               end_column=event['days'] + 1)
         virtual_wb = io.BytesIO()
         wb.save(virtual_wb)
         wb.close()
         virtual_wb.seek(0)
         return virtual_wb
 
-
     class DayInfo:
+
         def __init__(self, data_arr):
-            self.start_time = self.get_start_time(data_arr)
-            self.finish_time = self.get_finish_time(data_arr)
+            self.start_slot = self.get_start_slot(data_arr)
+            self.finish_slot = self.get_finish_slot(data_arr)
+            self.start_time = Schedule.convert_time(self.start_slot, datetime, Schedule.BASEHOUR)
+            self.finish_time = Schedule.convert_time(self.finish_slot, datetime, Schedule.BASEHOUR)
             self.day_length = self.finish_time - self.start_time
-            self.free_day = self.day_length == 0
-            self.longest_break = self.get_longest_break(data_arr, self.start_time, self.finish_time)
+            self.free_day = True if self.day_length else False
+            self.longest_break = Schedule.convert_time(
+                self.get_longest_break(data_arr, self.start_slot, self.finish_slot), datetime)
 
         @staticmethod
-        def get_start_time(arr):
+        def get_start_slot(arr):
             for i in range(Schedule.SLOTS):
                 if arr[i]:
                     return i
             return 0
 
         @staticmethod
-        def get_finish_time(arr):
+        def get_finish_slot(arr):
             for i in range(Schedule.SLOTS - 1, -1, -1):
                 if arr[i]:
                     return i
@@ -339,19 +372,19 @@ class Schedule:
         def __init__(self, max_day_length=None, min_day_length=None, free_days=None, max_break_length=None,
                      globalStartTime=None,
                      day_and_break_lengths=None, **kwargs):
-            self.max_day_length = max_day_length
-            self.min_day_length = min_day_length
+            self.max_day_length = Schedule.convert_time(max_day_length, datetime)
+            self.min_day_length = Schedule.convert_time(min_day_length, datetime)
             self.free_days = free_days
-            self.max_break_length = max_break_length
-            self.globalStartTime = globalStartTime
+            self.max_break_length = Schedule.convert_time(max_break_length, datetime)
+            self.globalStartTime = Schedule.convert_time(globalStartTime, datetime)
             self.day_and_break_lengths = day_and_break_lengths
 
 
 class Constraint(Schedule.Properties):
     def __init__(self, dayWithBreak_DayLength, dayWithBreak_BreakLength, **kwargs):
         super().__init__(**kwargs)
-        self.dayWithBreak_DayLength = dayWithBreak_DayLength
-        self.dayWithBreak_BreakLength = dayWithBreak_BreakLength
+        self.dayWithBreak_DayLength = Schedule.convert_time(dayWithBreak_DayLength, datetime)
+        self.dayWithBreak_BreakLength = Schedule.convert_time(dayWithBreak_BreakLength, datetime)
 
     def complies(self, schedule) -> bool:
         prop_other = schedule.get_properties()
@@ -376,10 +409,11 @@ class Constraint(Schedule.Properties):
 
 
 def scheduleGenerator(args):
-
     # if bool(args.dayWithBreak_DayLength) ^ bool(args.dayWithBreak_BreakLength):
     #     parser.error("dayWithBreak_DayLength and dayWithBreak_BreakLength must be given together")
     # print(args)
+
+    # Convert
     constraint = Constraint(**args)
 
     # dayWithBreak_DayLength=, dayWithBreak_BreakLength=, max_day_length=, min_day_length=,
@@ -404,7 +438,7 @@ def scheduleGenerator(args):
     n = len(pools.keys())
     schedules = []
 
-    def schedule_generator(i, schedule):
+    def schedule_generator(i, schedule: Schedule):
         if i >= n:
             if constraint.complies(schedule):
                 yield schedule
@@ -419,9 +453,13 @@ def scheduleGenerator(args):
 
 if __name__ == "__main__":
     # GET COURSES FIRST
-    scheduleGenerator(
-            {'courses': ['80131', '67101', '80181'], 'dayWithBreak_BreakLength': '', 'dayWithBreak_DayLength': '', 'globalStartTime': '',
-             'max_day_length': '', 'min_day_length': '', 'min_free_days': '', 'semester': 0, 'year': '2025'})
+    with open("d", mode="rb") as f:
+        d = pickle.load(f)
+    res = list(scheduleGenerator(d))
+    pass
+    # {'courses': ['80131', '67101', '80181'], 'dayWithBreak_BreakLength': '', 'dayWithBreak_DayLength': '',
+    #  'globalStartTime': '',
+    #  'max_day_length': '', 'min_day_length': '', 'min_free_days': '', 'semester': 0, 'year': '2025'}
 
     # parser = argparse.ArgumentParser(
     #     description='Create a schedule')

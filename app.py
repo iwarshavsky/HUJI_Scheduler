@@ -1,4 +1,5 @@
 import os
+import pickle
 import re
 import sqlite3
 import uuid
@@ -153,14 +154,18 @@ def submit():
     session["form_args"] = data
 
     # Generate Pickles in single file
-
+    # with open("d", mode="wb") as f:
+    #     pickle.dump(data,f)
+    # print(data)
     num_objects = pickle_write(session['uuid'], scheduleGenerator(data))
 
     query_db("INSERT into sessions (uuid,num_objects,filename,last_accessed) values (?,?,?,strftime('%s','now'))",
              [session['uuid'], num_objects, session['uuid'], ])
 
-
-    return jsonify({'success': True, 'message': 'Task saved!'})
+    if num_objects > 0:
+        return get(0)
+    return jsonify({'message':"No results"})
+        # return jsonify({'count': num_objects, 'message': 'Task saved!'})
 
     # TODO make sure all fields exist
     # session["year"]           = request.form.get('year')
@@ -183,13 +188,26 @@ def get(schedule_id):
         session_id = session['uuid']
         filename, num_schedules = query_db("SELECT filename, num_objects FROM sessions WHERE uuid = ?", [session_id], one=True)
         if int(num_schedules) >= 0 and 0<=int(schedule_id) < int(num_schedules) and filename:
+            # if request.method == 'POST':
+            #     return jsonify({"response":"OK"})
             schedule = pickle_read(filename, [int(schedule_id)])[0]
             if schedule:
+                response_dict = {"schedule_id": schedule_id,
+                                 "schedule_total": num_schedules,
+                                 "schedule_next": int(schedule_id) + 1 if int(schedule_id) + 1 < int(num_schedules) else -1,
+                                 "schedule_prev": int(schedule_id) - 1 if (int(schedule_id) - 1 >= 0) else -1,
+                                 "data": schedule.to_dict()}
                 if request.method == 'POST':  # Return JSON
-            # assert isinstance(schedule, Schedule)
-                    return jsonify(schedule.to_dict()), 200
+
+                    # schedule_dict =
+                    # schedule_dict["count"] = num_schedules
+                    # schedule_dict["id"] = schedule_id
+                    return jsonify(response_dict)
+                    # return Response(response=schedule.to_dict(), status=200)
+                    # return jsonify(schedule.to_dict())
                 else:                         # Download file
-                    return send_file(schedule.to_excel(), download_name="schedule.xlsx", mimetype='application/octet-stream', as_attachment=True)
+                    return render_template("agenda.html", schedule_data=response_dict)
+                    # return send_file(schedule.to_excel(), download_name="schedule.xlsx", mimetype='application/octet-stream', as_attachment=True)
         else:
             abort(400, description="No file associated with session")
 
