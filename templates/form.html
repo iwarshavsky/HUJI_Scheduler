@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" style="direction:rtl">
 <head>
     <meta charset="UTF-8">
     <title>Hebrew University Schedule Planner</title>
@@ -8,73 +8,116 @@
 </head>
 <body>
 
-<h1>Hebrew University Schedule Planner</h1>
+
 <div class="container">
     <!-- Left: Form Section -->
     <div class="form-section">
+
         <form onsubmit="return validateForm()" method="post" id="requestForm" action="/submit">
-            <label for="year">Year:</label>
-            <input type="number" id="year" name="year" min="1900" max="2100" value="2025">
+            <div id="formScroll">
+                <label for="year">שנה</label>
+                <input type="number" id="year" name="year" min="1900" max="2100" value="2025">
 
 
-            <label for="semester">Semester (A or B):</label>
-            <input type="text" id="semester" name="semester" pattern="[AB]{1}" value="A">
+                <label for="semester">סמסטר</label>
+                <input type="text" id="semester" name="semester" pattern="[AB]{1}" value="A">
 
-            <label for="courseNumberInput">Course Number (up to 6 digits):</label>
-            <div class="course-entry">
-                <input type="text" id="courseNumberInput" maxlength="6" pattern="\d{1,6}"
-                       placeholder="Enter course number" value="8013">
-                <button type="button" onclick="addCourse()">Add Course</button>
-            </div>
-
-
-            <!-- Hidden input for submission -->
-            <input type="hidden" name="courses" id="coursesHidden">
-
-            <!-- Display added courses -->
-            <div id="courseList" style="margin-top: 10px;"></div>
+                <label for="courseNumberInput">מספר הקורס:</label>
+                <div class="course-entry">
+                    <input type="text" id="courseNumberInput" maxlength="6" pattern="\d{1,6}"
+                           placeholder="לדוגמה 80131..." value="">
+                    <button type="button" onclick="addCourse()">הוספה</button>
+                </div>
 
 
-            <label for="maxDayLength">Maximal Day Length:</label>
-            <select id="maxDayLength" name="max_day_length"></select>
+                <!-- Hidden input for submission -->
+                <input type="hidden" name="courses" id="coursesHidden">
 
-            <label for="minDayLength">Minimal Day Length:</label>
-            <select id="minDayLength" name="min_day_length"></select>
+                <!-- Display added courses -->
+                <div id="courseList" style="margin-top: 10px;"></div>
 
-            <label for="minFreeDays">Minimal Number of Free Days:</label>
-            <input type="number" id="minFreeDays" name="min_free_days" min="0">
 
-            <label for="globalStartTime">Global Start Time:</label>
-            <select id="globalStartTime" name="globalStartTime"></select>
+                <label for="maxDayLength">אורך יום מירבי:</label>
+                <select id="maxDayLength" name="max_day_length"></select>
 
-            <div class="grouped">
-                <label for="dayWithBreakDayLength">Day With Break - Day Length:</label>
-                <select id="dayWithBreakDayLength" name="dayWithBreak_DayLength"></select>
+                <label for="minDayLength">אורך יום מינימלי:</label>
+                <select id="minDayLength" name="min_day_length"></select>
 
-                <label for="dayWithBreakBreakLength">Day With Break - Break Length:</label>
-                <select id="dayWithBreakBreakLength" name="dayWithBreak_BreakLength"></select>
+                <label for="minFreeDays">מספר ימים חופשיים מינימלי:</label>
+                <input type="number" id="minFreeDays" name="num_free_days" min="0">
+
+                <div style="display: flex; gap: 20px;">
+                    <div class="div_label">ימים חופשיים:</div>
+                    <div style="text-align: center;">
+                        <label for="cb0">א'</label><input type="checkbox" id="cb0" name="freeDay" value="0">
+                    </div>
+                    <div style="text-align: center;">
+                        <label for="cb1">ב'</label><input type="checkbox" id="cb1" name="freeDay" value="1">
+                    </div>
+                    <div style="text-align: center;">
+                        <label for="cb2">ג'</label><input type="checkbox" id="cb2" name="freeDay" value="2">
+                    </div>
+                    <div style="text-align: center;">
+                        <label for="cb3">ד'</label><input type="checkbox" id="cb3" name="freeDay" value="3">
+                    </div>
+                    <div style="text-align: center;">
+                        <label for="cb4">ה'</label><input type="checkbox" id="cb4" name="freeDay" value="4">
+                    </div>
+                    <div style="text-align: center;">
+                        <label for="cb5">ו'</label><input type="checkbox" id="cb5" name="freeDay" value="5">
+                    </div>
+
+                </div>
+
+                <input type="hidden" name="free_days" id="free_days">
+                <label for="globalStartTime">שעת התחלה מוקדמת ביותר:</label>
+                <select id="globalStartTime" name="globalStartTime"></select>
+
+                <div class="grouped">
+                    <label for="dayWithBreakDayLength">אם אורך היום הוא לפחות:</label>
+                    <select id="dayWithBreakDayLength" name="dayWithBreak_DayLength"></select>
+
+                    <label for="dayWithBreakBreakLength">חייבת להיות בו הפסקה באורך לפחות:</label>
+                    <select id="dayWithBreakBreakLength" name="dayWithBreak_BreakLength"></select>
+                </div>
             </div>
             <div id="errorsContainer"></div>
-            <button type="submit">Submit</button>
+            <div id="form_bottom_row">
+                <div>
+                    <button type="submit">בנו לי מערכת</button>
+                </div>
+
+            </div>
+
         </form>
+        <div id="colorWheel" class="color-wheel"></div>
     </div>
     <!-- Right: Empty Div Section -->
     <div class="preview-section">
-        <div id="agendaContainer"></div>
-        <footer></footer>
-        <button id="getNextBtn_post">Get Next (POST)</button>
-        <script src="https://unpkg.com/xlsx@0.15.1/dist/xlsx.full.min.js"></script>
-        <script>
-            function exportTableToExcel(tableId, filename = 'data.xlsx') {
-                const table = document.getElementById(tableId);
-                const wb = XLSX.utils.table_to_book(table, {raw: false, cellStyles: true});
-                XLSX.writeFile(wb, filename);
-            }
-        </script>
-        <a onclick="exportTableToExcel('agenda')" href="#">Client Excel</a>
-        <a href="/get/0">Download</a>
-        <!--        <button id="getNextBtn_get">Get Next (GET)</button>-->
-        <!-- This space can be used for dynamic content -->
+        <div id="agendaContainer">
+            <h1>Hebrew University<br>Schedule Planner</h1>
+        </div>
+
+
+        <footer>
+            <div>
+                <button id="agenda_prev">אחורה</button>
+            </div>
+
+            <div id="schedule_number" style="direction: ltr">
+                <span class="input" role="textbox" contenteditable id="cur_schedule_number"></span>
+                <span id="schedule_total"></span>
+
+            </div>
+            <div>
+                <button id="agenda_next">קדימה</button>
+            </div>
+            <div style="margin-right: auto">
+                <button onClick="exportStyledTableToExcel('agenda')">ייצוא לאקסל</button>
+                <button onclick="exportICS()">ייצוא ליומן</button>
+            </div>
+        </footer>
+
     </div>
 </div>
 
@@ -82,7 +125,7 @@
 <div id="jsonModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
-        <h3>Edit pool_dict</h3>
+
         <div id="editorContainer"></div>
         <button onclick="deletePoolDict()">🗑 Delete pool_dict</button>
     </div>
@@ -90,6 +133,8 @@
 
 
 <script src="{{ url_for('static', filename='main.js') }}"></script>
+<script src="{{ url_for('static', filename='export.js') }}"></script>
+<!--<script src="{{ url_for('static', filename='webworker.js') }}"></script>-->
 </body>
 </html>
 

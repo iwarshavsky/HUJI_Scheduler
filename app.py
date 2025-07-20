@@ -114,6 +114,7 @@ def get_course():
         data['id'] = request.args['id']
     if errors:
         return Response(response=errors, status=400)
+    # CACHE!
     course = Course(data['id'], data['year'], data['semester'])
     if course.pool_dict:
         return Response(response=json.dumps(course, default=vars),

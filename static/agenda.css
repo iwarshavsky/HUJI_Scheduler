@@ -16,21 +16,22 @@
   }
     #agenda td, #agenda th {
       border-left:1px solid grey;
-      border-right:1px solid grey;
+      /*border-right:1px solid grey;*/
       white-space: pre;
         padding: 2px;
       font-size: 12px;
       text-align: center;
+        background-color: #f0f4f8;
   }
 
     #agenda td {
-      height: 0.4em;
+      height: 0.6em;
       /*border:none;*/
     }
-    #agenda td:first-child,
-    #agenda th:first-child {
-      padding: 0 12px; /* adjust as needed */
-    }
+    /*#agenda td:first-child,*/
+    /*#agenda th:first-child {*/
+    /*  padding: 0 12px; !* adjust as needed *!*/
+    /*}*/
 
 /* Make every even row’s bottom border red */
 #agenda tbody tr:nth-child(4n+0) td {border-top: 1px dashed #80808030;}
@@ -43,3 +44,52 @@
       font-weight: bold;
       border: 1px solid black !important;
     }
+
+    footer {
+        display: flex;
+        /*justify-content: space-between;*/
+    }
+    footer div {
+        /*flex: 1;*/
+    }
+    #schedule_number {
+        width: 11ch;
+        text-align: center;
+        align-content: center;
+    }
+    #schedule_number > * {
+        /*padding: 10px;*/
+        font-size:large;
+
+        text-align: center;
+        height: 100%;
+        align-content: center;
+    }
+
+    #cur_schedule_number {
+            background: none;
+    border: none;
+    border-bottom: 1px solid grey;
+        padding-right: 0px;
+    }
+
+    .input,
+.textarea {
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 1px 6px;
+}
+
+/*.input-wrap {*/
+/*  position: relative;*/
+/*}*/
+/*.input-wrap .input {*/
+/*  position: absolute;*/
+/*  width: 100%;*/
+/*  left: 0;*/
+/*}*/
+/*.width-machine {*/
+/*  !*   Sort of a magic number to add extra space for number spinner *!*/
+/*  padding: 0 1rem;*/
+/*}*/

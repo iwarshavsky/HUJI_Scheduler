@@ -3,6 +3,7 @@ import json
 import os
 import struct
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 from flask import Flask
 
@@ -19,7 +20,7 @@ import shutil
 import pickle
 from flask import session
 
-url = "https://shnaton.huji.ac.il/index.php"
+
 
 # Custom headers
 headers = {
@@ -45,6 +46,7 @@ headers = {
 
 
 def make_request(course_id, year):
+    base_url = "https://shnaton.huji.ac.il/index.php"
     # Make the POST request
     data = {
         "year": year,
@@ -55,17 +57,20 @@ def make_request(course_id, year):
         "course": course_id
     }
 
-    response = requests.post(url, data=data, headers=headers)  # This is a blocking call
+    query_string = urlencode(data)
 
+    # response = requests.post(url, data=data, headers=headers)  # This is a blocking call
+    full_url = f"{base_url}?{query_string}"
+    response = requests.get(full_url, headers=headers)
     if response.status_code != 200:
         print("Error. Received code " + str(response.status_code))
         exit()
 
-    # Save the HTML response
-    with open("response.html", "w", encoding="utf-8") as f:
-        f.write(response.text)
+    # # Save the HTML response
+    # with open("response.html", "w", encoding="utf-8") as f:
+    #     f.write(response.text)
 
-    return response.text
+    return response.text, full_url
 
 
 # TODO pickle?
@@ -76,19 +81,21 @@ class CoursePool:
 
 
 class CourseBlock:
-    def __init__(self, course_num, bs_el=None, data_dict=None):
+    def __init__(self, course_num, course_name, bs_el=None, data_dict=None):
         """
         Initialiaze a CourseBlock from raw HTML row - may include several events.
         We assume each row contains info of the same semester, same group.
         TIME_FINISH is not inclusive.
         :param bs_el: BeautifulSoup element
         """
+        self.course_num = course_num
+        self.course_name = course_name
         if bs_el:
             raw_keys = ["groups", "semester", "days", "hour", "lesson", "places", "note"]
             keys = ["groups", "semester", "days", "time_start", "time_finish", "lesson", "places", "note"]
-            raw_attributes = self._extract_raw_attributes(bs_el, raw_keys)
-
+            raw_attributes, self.warnings = self._extract_raw_attributes(bs_el, raw_keys)
             self._split_hour_column(raw_attributes)
+            # Remove rows with no date/time/semester
 
             formatted_attributes = {key: list(map(lambda item: self.format(key, item), raw_attributes[key])) for key in
                                     keys}
@@ -96,7 +103,7 @@ class CourseBlock:
             # formatted_attributes['time_start_slot'] = [self.convert_time_to_slot(t) for t in formatted_attributes['time_start']]
             # formatted_attributes['time_finish_slot'] = [self.convert_time_to_slot(t) for t in formatted_attributes['time_finish']]
 
-            self.course_num = course_num
+
             self.group = formatted_attributes.get("groups")[0]
             self.semester = formatted_attributes.get("semester")[0]
             # TODO - check for empty rows
@@ -107,8 +114,8 @@ class CourseBlock:
 
             self.lesson_type = formatted_attributes.get("lesson")[0]
 
+
         if data_dict:
-            self.course_num = course_num
             self.group = data_dict['group']
             self.semester = data_dict['semester']
             self.event_list = data_dict['event_list']
@@ -118,11 +125,19 @@ class CourseBlock:
 
     @staticmethod
     def _extract_raw_attributes(bs_el, attribute_lst):
-        # return bs_el.find("div", {"class": "semester"}).div.string
+        # return bs_el.find("div", {"class": "semester"}).div.string and warning if there was an error parsing
         attribute_dict = {}
         for attribute in attribute_lst:
             attribute_dict[attribute] = list(bs_el.find("div", {"class": attribute}).stripped_strings)
-        return attribute_dict
+        warnings = []
+        # Find max len of any key, pad the rest. Result is dict with list values of equal length
+        max_len = max([len(attribute_data) for attribute_data in attribute_dict.values()])
+        for attribute in attribute_lst:
+            l = len(attribute_dict[attribute])
+            if l != max_len:
+                attribute_dict[attribute] += ['']*(max_len-l)
+                warnings.append(attribute)
+        return attribute_dict, warnings
 
     @staticmethod
     def _split_hour_column(raw_attributes):
@@ -131,9 +146,10 @@ class CourseBlock:
         """
         dict_new_cols = {"time_start": [], "time_finish": []}
         for t_string in raw_attributes["hour"]:
-            time_finish, time_start = t_string.split("-")
-            dict_new_cols["time_start"].append(time_start)
-            dict_new_cols["time_finish"].append(time_finish)
+            if t_string:
+                time_finish, time_start = t_string.split("-")
+                dict_new_cols["time_start"].append(time_start)
+                dict_new_cols["time_finish"].append(time_finish)
         raw_attributes.pop("hour")
 
         raw_attributes["time_start"] = dict_new_cols["time_start"]
@@ -150,6 +166,7 @@ class CourseBlock:
         """
         # Make sure that there was no error parsing, all keys must have the same number of scheduled events
         if not all(len(raw_attribute_dict[k]) == len(raw_attribute_dict[keys[0]]) for k in keys):  # Invalid row
+            print("Bad course")
             return []
 
         events = [{key: raw_attribute_dict[key][i] for key in keys}
@@ -159,23 +176,25 @@ class CourseBlock:
 
     @staticmethod
     def format(key, value):
-
-        if key == "semester":
-            semester_mapping = {"סמסטר א": 0, "סמסטר ב": 1}
-            return semester_mapping[value]
-        elif key == "days":
-            v = value.replace("יום ", "").replace("'", "")
-            return ord(v) - 1488  # Convert Hebrew letter to corresponding number
-        elif key in ["time_start", "time_finish"]:
-            pass
-            # t = datetime.strptime(value, "%-H:%M")
-            # return t  # timedelta(hours=t.hour, minutes=t.minute)
-            # return convert_time(value)
-        elif key in "groups":
-            v = value.replace("קבוצה (", "").replace(")", "")
-            return v
-            pass
-        else:
+        try:
+            if key == "semester":
+                semester_mapping = {"סמסטר א": 0, "סמסטר ב": 1}
+                return semester_mapping[value]
+            elif key == "days":
+                v = value.replace("יום ", "").replace("'", "")
+                return ord(v) - 1488  # Convert Hebrew letter to corresponding number
+            elif key in ["time_start", "time_finish"]:
+                pass
+                # t = datetime.strptime(value, "%-H:%M")
+                # return t  # timedelta(hours=t.hour, minutes=t.minute)
+                # return convert_time(value)
+            elif key in "groups":
+                v = value.replace("קבוצה (", "").replace(")", "")
+                return v
+                pass
+            else:
+                pass
+        except:
             pass
 
         return value
@@ -186,15 +205,15 @@ class Course:
     Multiple course blocks
     """
 
-    def __init__(self, course, year, semester, pool_dict=None):
-        self.course = course
+    def __init__(self, course_num, year, semester, pool_dict=None):
+        self.course_num = course_num
         self.year = year
         self.semester = semester
         if pool_dict:
             self.pool_dict = pool_dict
         else:
             self.pool_dict = {}
-            response = make_request(course, year)
+            response, self.url = make_request(course_num, year)
 
             soup = BeautifulSoup(response, 'html.parser')
 
@@ -203,12 +222,15 @@ class Course:
             course_table = soup.find("div", COURSE_TABLE)
             soup.prettify()
 
+            self.course_name = soup.select(".data-course-title")[0].text.strip()
+
             # Loop through children, first child has class="row title-row", should be ignored, the other have class="row"
             for row in course_table.find_all("div", recursive=False):
                 if FIRST_ROW in row['class']:  # Ignore first row
                     continue
-                session_group = CourseBlock(self.course, row)
+                session_group = CourseBlock(self.course_num, self.course_name, row)
                 self.add_block(session_group)
+
 
             # print(row)
         # categorize Course Blocks by activity type - we must choose one of each activity type
@@ -219,7 +241,7 @@ class Course:
             blocks_of_same_type.append(courseBlock)
 
     def get_pools(self):
-        return {(self.course, key): self.pool_dict[key] for key in self.pool_dict.keys()}
+        return {(self.course_num, key): self.pool_dict[key] for key in self.pool_dict.keys()}
 
 
 class Schedule:
@@ -311,23 +333,6 @@ class Schedule:
     def get_blocks(self):
         return self.blocks
 
-    def to_excel(self):
-        wb = load_workbook('static/template.xlsx')
-        ws = wb["Results"]
-        for block in self.blocks:
-            for event in block.event_list:
-                ws.cell(row=event['time_start'] + 2,
-                        column=event['days'] + 1,
-                        value='\n'.join([block.course_num, event['lesson'], event['places']]))
-                ws.merge_cells(start_row=event['time_start'] + 2,
-                               start_column=event['days'] + 1,
-                               end_row=event['time_finish'] + 2,
-                               end_column=event['days'] + 1)
-        virtual_wb = io.BytesIO()
-        wb.save(virtual_wb)
-        wb.close()
-        virtual_wb.seek(0)
-        return virtual_wb
 
     class DayInfo:
 
@@ -379,6 +384,23 @@ class Schedule:
             self.globalStartTime = Schedule.convert_time(globalStartTime, datetime)
             self.day_and_break_lengths = day_and_break_lengths
 
+    def to_excel(self):
+        wb = load_workbook('static/template.xlsx')
+        ws = wb["Results"]
+        for block in self.blocks:
+            for event in block.event_list:
+                ws.cell(row=event['time_start'] + 2,
+                        column=event['days'] + 1,
+                        value='\n'.join([block.course_num, event['lesson'], event['places']]))
+                ws.merge_cells(start_row=event['time_start'] + 2,
+                               start_column=event['days'] + 1,
+                               end_row=event['time_finish'] + 2,
+                               end_column=event['days'] + 1)
+        virtual_wb = io.BytesIO()
+        wb.save(virtual_wb)
+        wb.close()
+        virtual_wb.seek(0)
+        return virtual_wb
 
 class Constraint(Schedule.Properties):
     def __init__(self, dayWithBreak_DayLength, dayWithBreak_BreakLength, **kwargs):
@@ -422,10 +444,12 @@ def scheduleGenerator(args):
     courses_dict = args['courses']
 
     # Reconstruct courses from dicts
-    courses = [Course(course=course_dict['course'],
+    courses = [Course(course_num=course_dict['course'],
                       year=course_dict['year'],
                       semester=course_dict['semester'],
-                      pool_dict={lesson_type: [CourseBlock(course_num=block_dict['course_num'], data_dict=block_dict)
+                      pool_dict={lesson_type: [CourseBlock(course_num=block_dict['course_num'],
+                                                           course_name=block_dict['course_name'],
+                                                           data_dict=block_dict)
                                                for block_dict in block_lst]
                                  for lesson_type, block_lst in course_dict['pool_dict'].items()})
                for course_dict in courses_dict.values()]
