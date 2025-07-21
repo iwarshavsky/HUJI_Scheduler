@@ -339,11 +339,26 @@ function validateForm() {
     const dayLength = document.getElementById("dayWithBreakDayLength").value;
     const breakLength = document.getElementById("dayWithBreakBreakLength").value;
     const onlyOneFilled = (dayLength && !breakLength) || (!dayLength && breakLength);
-
+    const courseNumber = document.getElementById("courseNumberInput").value;
+    const minFreeDays = document.getElementById("minFreeDays").value;
     if (onlyOneFilled) {
         alert("Please fill in both Day Length and Break Length or leave both empty.");
         return false;
     }
+    // if (!/^\d{4,7}$/.test(String(courseNumber))) { // only numbers with 4 to 7 digits allowed
+    //     alert("יש לבחור מספר קורס בין 4 ל-7 ספרות");
+    //     return false;
+    // }
+    if (Object.keys(responseStore.data).length === 0) {
+        alert("יש לבחור קורס");
+        return false;
+    }
+    if (!/^$|^[0-6]$/.test(minFreeDays)) {
+        alert("מספר ימים מינילי יכול להיות רק בין 0-6");
+        return false;
+    }  // single digit between 0-6 or empty allowed
+
+
     return true;
 }
 
@@ -447,7 +462,7 @@ document.getElementById('requestForm').addEventListener("keydown", function (key
     });
 // Sample JSON to test
 // const validSchedules = [];
-let schedule_worker = new Worker("/static/webworker.js");
+const schedule_worker = new Worker("/static/js/webworker.js");
 const form_results_num = document.getElementById("schedule_total");
 schedule_worker.onmessage = (event) => {
   const is_first = event.data.first;
@@ -464,7 +479,7 @@ schedule_worker.onmessage = (event) => {
             console.log("No results");
         }
     } else {
-        // console.log("After first")
+        console.log("After first")
     }
 
     if (is_done) {
@@ -480,14 +495,13 @@ schedule_worker.onerror = (error) => {
 };
 
 
-schedule_worker = new Worker("/static/webworker.js");
+
 document.getElementById('requestForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
   document.getElementById("free_days").value = [...document.querySelectorAll('input[name="freeDay"]:checked')]
       .map(cb => cb.value)
       .join(",");
-
 
 
     const formData = new FormData(this);

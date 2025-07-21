@@ -38,7 +38,10 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             transition: border-color 0.2s;
-            font-family: Consolas, ui-monospace;
+            font-family: system-ui;
+            /*max-width: 50%;*/
+    /* float: left; */
+    /*margin-right: auto;*/
         }
 
         input:focus,
@@ -57,6 +60,7 @@
             cursor: pointer;
             font-size: 15px;
             transition: background-color 0.2s;
+            font-family: system-ui;
         }
 
         button:hover {
@@ -157,6 +161,7 @@
             padding: 15px;
             border-radius: 6px;
             background-color: #fafafa;
+            align-items: end !important;
         }
 
         .container {
@@ -367,12 +372,14 @@ html {
 #welcome_head_small {
     color:black;
     font-size: 70%;
+
 }
 
 #welcome_under {
     font-size: smaller;
     float: left;
     padding-top: 15%;
+
 }
 
 #credit {

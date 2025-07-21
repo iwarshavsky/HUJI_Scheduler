@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import re
 import struct
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
@@ -44,10 +45,32 @@ headers = {
     "sec-ch-ua-platform": '"Windows"'
 }
 
+def requestCurrentYear():
+    response, url = make_request()
+    soup = BeautifulSoup(response, 'html.parser')
+    numbers = re.findall(r'\d+', soup.select(".subtitle")[0].text)
+    if not numbers:
+        return None  # or raise an error if preferred
+    return max(map(int, numbers))
 
-def make_request(course_id, year):
+
+def make_request(course_id=-1, year=-1):
     base_url = "https://shnaton.huji.ac.il/index.php"
+
+    # Get basic page to figure out what year it is
+    if course_id==-1 and year==-1:
+        response = requests.get(base_url, headers=headers)
+        if response.status_code != 200:
+            print("Error. Received code " + str(response.status_code))
+            exit()
+
+        # # Save the HTML response
+        # with open("response.html", "w", encoding="utf-8") as f:
+        #     f.write(response.text)
+
+        return response.text, base_url
     # Make the POST request
+
     data = {
         "year": year,
         "faculty": "0",
@@ -476,6 +499,7 @@ def scheduleGenerator(args):
 
 
 if __name__ == "__main__":
+
     # GET COURSES FIRST
     with open("d", mode="rb") as f:
         d = pickle.load(f)
