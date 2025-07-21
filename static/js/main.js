@@ -76,12 +76,12 @@ function createAgenda(schedule_id, msg="") {
         rows.push(tr);
         tbody.appendChild(tr);
     });
-
+    msg_div.innerText = msg;
     if (schedule_id < 0) {
         document.querySelector("footer").classList.add("hidden");
         // Show the message
         const msg_div = document.getElementById("msg_div");
-        msg_div.innerText = msg;
+
         msg_div.classList.add("show");
         return;
     }
