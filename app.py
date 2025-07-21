@@ -1,16 +1,10 @@
-import os
-import pickle
-import re
-import sqlite3
 import uuid
 
 from flask import (Flask, request, session, flash, g, send_from_directory, redirect, url_for, Response,
                    stream_with_context, jsonify, render_template, send_file, abort)
 
-import schedule_generator
 from schedule_generator import *
 from datetime import datetime, date
-from io import BytesIO
 from db import *
 
 app = Flask(__name__)
@@ -19,10 +13,6 @@ app.config.from_mapping(
     JSON_AS_ASCII=False
 )
 
-
-# @app.errorhandler(401)
-# def custom_401(error):
-#     return Response('<Why access is denied string goes here...>', 401, {'WWW-Authenticate':'Basic realm="Login Required"'})
 
 def get_current_year():
     def has_one_day_passed(sqlite_date_str):
@@ -122,4 +112,5 @@ def get_course():
 
 @app.teardown_appcontext
 def close_connection(exception):
+    print(exception)
     close_db()

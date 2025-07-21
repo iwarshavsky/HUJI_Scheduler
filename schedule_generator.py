@@ -1,25 +1,11 @@
-import io
-import json
-import os
 import re
-import struct
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
-from flask import Flask
-
 from bs4 import BeautifulSoup
-import argparse
-from copy import copy, deepcopy
-from types import SimpleNamespace
-import timeit
-import itertools
 import requests
-from openpyxl import Workbook
-from openpyxl import load_workbook
-import shutil
+
 import pickle
-from flask import session
 
 
 
@@ -407,23 +393,6 @@ class Schedule:
             self.globalStartTime = Schedule.convert_time(globalStartTime, datetime)
             self.day_and_break_lengths = day_and_break_lengths
 
-    def to_excel(self):
-        wb = load_workbook('static/template.xlsx')
-        ws = wb["Results"]
-        for block in self.blocks:
-            for event in block.event_list:
-                ws.cell(row=event['time_start'] + 2,
-                        column=event['days'] + 1,
-                        value='\n'.join([block.course_num, event['lesson'], event['places']]))
-                ws.merge_cells(start_row=event['time_start'] + 2,
-                               start_column=event['days'] + 1,
-                               end_row=event['time_finish'] + 2,
-                               end_column=event['days'] + 1)
-        virtual_wb = io.BytesIO()
-        wb.save(virtual_wb)
-        wb.close()
-        virtual_wb.seek(0)
-        return virtual_wb
 
 class Constraint(Schedule.Properties):
     def __init__(self, dayWithBreak_DayLength, dayWithBreak_BreakLength, **kwargs):
