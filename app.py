@@ -42,7 +42,6 @@ def pickle_write(filename, generator):
     return len(index)
 
 
-
 def pickle_read(filename, ids):
     """
     Return array of deserialized pickle objects with given ids
@@ -90,7 +89,7 @@ def home():
 
 
 @app.route('/get_course', methods=['GET', 'POST'])
-@session_required
+# @session_required
 def get_course():
     errors = {}
     data = {}
@@ -114,113 +113,131 @@ def get_course():
         data['id'] = request.args['id']
     if errors:
         return Response(response=errors, status=400)
-    # CACHE!
-    course = Course(data['id'], data['year'], data['semester'])
-    if course.pool_dict:
-        return Response(response=json.dumps(course, default=vars),
+    cached_response = None
+    db_response = query_db(
+        "SELECT data, date_created FROM course_cache WHERE course_num = ? and year = ? and semester = ?",
+        [data['id'], data['year'], data['semester']], one=True)
+
+    if db_response:
+        cached_response, date_created = db_response
+
+    if cached_response:
+        return Response(response=cached_response,
                         status=200,
                         mimetype='application/json')
-    return Response(response=json.dumps({"error":"No such course exists"}), status=400)
+
+    course = Course(data['id'], data['year'], data['semester'])
+    data_to_add = json.dumps(course if course.pool_dict else {"error": "No such course exists"}, default=vars)
+    # DELETE OLD CACHED
+    query_db("DELETE FROM course_cache WHERE date_created < DATE('now','-1 month')")
+    query_db(
+        "INSERT INTO course_cache (course_num, year, semester, data, date_created) values (?,?,?,?,DATE('now'))",
+        [data['id'], data['year'], data['semester'], data_to_add], one=True)
+    return Response(response=data_to_add,
+                    status=200,
+                    mimetype='application/json')
+
+
 
 @app.teardown_appcontext
 def close_connection(exception):
     close_db()
 
-@app.route('/submit', methods=['POST'])
-@session_required
-def submit():
-    def is_valid_custom_time(s):
-        pattern = r'^(?:[01]\d|2[0-4]):(?:00|15|30|45)$'
-        return bool(re.fullmatch(pattern, s))
+# @app.route('/submit', methods=['POST'])
+# # @session_required
+# def submit():
+#     def is_valid_custom_time(s):
+#         pattern = r'^(?:[01]\d|2[0-4]):(?:00|15|30|45)$'
+#         return bool(re.fullmatch(pattern, s))
+#
+#
+#     data = request.get_json()
+#     errors = {}
+#
+#     if not data.get('courses'):
+#         errors['courses'] = 'Courses are required'
+#     else:
+#         data['courses'] = data.get('courses')
+#
+#         # TODO check number of courses
+#
+#     for k in ["max_day_length", "min_day_length", "global_start_time", "dayWithBreak_BreakLength", "break_length"]:
+#         if data.get(k) and not is_valid_custom_time(data.get(k)):
+#             errors[k] = f"{k} is not a valid time"
+#
+#     if errors:
+#         return jsonify({'success': False, 'errors': errors})
+#
+#     # No errors — proceed with logic
+#     session["form_args"] = data
+#
+#     # Generate Pickles in single file
+#     # with open("d", mode="wb") as f:
+#     #     pickle.dump(data,f)
+#     # print(data)
+#     num_objects = pickle_write(session['uuid'], scheduleGenerator(data))
+#
+#     query_db("INSERT into sessions (uuid,num_objects,filename,last_accessed) values (?,?,?,strftime('%s','now'))",
+#              [session['uuid'], num_objects, session['uuid'], ])
+#
+#     if num_objects > 0:
+#         return get(0)
+#     return jsonify({'message':"No results"})
+#         # return jsonify({'count': num_objects, 'message': 'Task saved!'})
+#
+#     # TODO make sure all fields exist
+#     # session["year"]           = request.form.get('year')
+#     # session["semester"]       = request.form.get('semester')
+#     # session["course_numbers"] = request.form.get('courseNumbers')  # comma-separated string
+#     # session["max_day_length"] = request.form.get('max_day_length')
+#     # session["min_day_length"] = request.form.get('min_day_length')
+#     # session["min_free_days"]  = request.form.get('min_free_days')
+#     # session["global_start_time"] = request.form.get('globalStartTime')
+#     # session["dayWithBreak_DayLength"] = request.form.get('dayWithBreak_DayLength')
+#     # session["break_length"] = request.form.get('dayWithBreak_BreakLength')
 
 
-    data = request.get_json()
-    errors = {}
-
-    if not data.get('courses'):
-        errors['courses'] = 'Courses are required'
-    else:
-        data['courses'] = data.get('courses')
-
-        # TODO check number of courses
-
-    for k in ["max_day_length", "min_day_length", "global_start_time", "dayWithBreak_BreakLength", "break_length"]:
-        if data.get(k) and not is_valid_custom_time(data.get(k)):
-            errors[k] = f"{k} is not a valid time"
-
-    if errors:
-        return jsonify({'success': False, 'errors': errors})
-
-    # No errors — proceed with logic
-    session["form_args"] = data
-
-    # Generate Pickles in single file
-    # with open("d", mode="wb") as f:
-    #     pickle.dump(data,f)
-    # print(data)
-    num_objects = pickle_write(session['uuid'], scheduleGenerator(data))
-
-    query_db("INSERT into sessions (uuid,num_objects,filename,last_accessed) values (?,?,?,strftime('%s','now'))",
-             [session['uuid'], num_objects, session['uuid'], ])
-
-    if num_objects > 0:
-        return get(0)
-    return jsonify({'message':"No results"})
-        # return jsonify({'count': num_objects, 'message': 'Task saved!'})
-
-    # TODO make sure all fields exist
-    # session["year"]           = request.form.get('year')
-    # session["semester"]       = request.form.get('semester')
-    # session["course_numbers"] = request.form.get('courseNumbers')  # comma-separated string
-    # session["max_day_length"] = request.form.get('max_day_length')
-    # session["min_day_length"] = request.form.get('min_day_length')
-    # session["min_free_days"]  = request.form.get('min_free_days')
-    # session["global_start_time"] = request.form.get('globalStartTime')
-    # session["dayWithBreak_DayLength"] = request.form.get('dayWithBreak_DayLength')
-    # session["break_length"] = request.form.get('dayWithBreak_BreakLength')
-
-
-
-# a simple page that says hello
-@app.route('/get/<schedule_id>', methods=['GET','POST'])
-@session_required
-def get(schedule_id):
-    if session.get("form_args"):
-        session_id = session['uuid']
-        filename, num_schedules = query_db("SELECT filename, num_objects FROM sessions WHERE uuid = ?", [session_id], one=True)
-        if int(num_schedules) >= 0 and 0<=int(schedule_id) < int(num_schedules) and filename:
-            # if request.method == 'POST':
-            #     return jsonify({"response":"OK"})
-            schedule = pickle_read(filename, [int(schedule_id)])[0]
-            if schedule:
-                response_dict = {"schedule_id": schedule_id,
-                                 "schedule_total": num_schedules,
-                                 "schedule_next": int(schedule_id) + 1 if int(schedule_id) + 1 < int(num_schedules) else -1,
-                                 "schedule_prev": int(schedule_id) - 1 if (int(schedule_id) - 1 >= 0) else -1,
-                                 "data": schedule.to_dict()}
-                if request.method == 'POST':  # Return JSON
-
-                    # schedule_dict =
-                    # schedule_dict["count"] = num_schedules
-                    # schedule_dict["id"] = schedule_id
-                    return jsonify(response_dict)
-                    # return Response(response=schedule.to_dict(), status=200)
-                    # return jsonify(schedule.to_dict())
-                else:                         # Download file
-                    return render_template("agenda.html", schedule_data=response_dict)
-                    # return send_file(schedule.to_excel(), download_name="schedule.xlsx", mimetype='application/octet-stream', as_attachment=True)
-        else:
-            abort(400, description="No file associated with session")
-
-    return "", 400
-
-
-@app.route('/download/<file_id>')
-@session_required
-def download(file_id):
-    return send_file(BytesIO(), download_name="schedule.xlsx", as_attachment=True)
-
-
-if __name__ == '__main__':
-    app.run()
-# host='127.0.0.1', port=5001, debug=True
+#
+# # a simple page that says hello
+# @app.route('/get/<schedule_id>', methods=['GET','POST'])
+# @session_required
+# def get(schedule_id):
+#     if session.get("form_args"):
+#         session_id = session['uuid']
+#         filename, num_schedules = query_db("SELECT filename, num_objects FROM sessions WHERE uuid = ?", [session_id], one=True)
+#         if int(num_schedules) >= 0 and 0<=int(schedule_id) < int(num_schedules) and filename:
+#             # if request.method == 'POST':
+#             #     return jsonify({"response":"OK"})
+#             schedule = pickle_read(filename, [int(schedule_id)])[0]
+#             if schedule:
+#                 response_dict = {"schedule_id": schedule_id,
+#                                  "schedule_total": num_schedules,
+#                                  "schedule_next": int(schedule_id) + 1 if int(schedule_id) + 1 < int(num_schedules) else -1,
+#                                  "schedule_prev": int(schedule_id) - 1 if (int(schedule_id) - 1 >= 0) else -1,
+#                                  "data": schedule.to_dict()}
+#                 if request.method == 'POST':  # Return JSON
+#
+#                     # schedule_dict =
+#                     # schedule_dict["count"] = num_schedules
+#                     # schedule_dict["id"] = schedule_id
+#                     return jsonify(response_dict)
+#                     # return Response(response=schedule.to_dict(), status=200)
+#                     # return jsonify(schedule.to_dict())
+#                 else:                         # Download file
+#                     return render_template("agenda.html", schedule_data=response_dict)
+#                     # return send_file(schedule.to_excel(), download_name="schedule.xlsx", mimetype='application/octet-stream', as_attachment=True)
+#         else:
+#             abort(400, description="No file associated with session")
+#
+#     return "", 400
+#
+#
+# @app.route('/download/<file_id>')
+# @session_required
+# def download(file_id):
+#     return send_file(BytesIO(), download_name="schedule.xlsx", as_attachment=True)
+#
+#
+# if __name__ == '__main__':
+#     app.run()
+# # host='127.0.0.1', port=5001, debug=True

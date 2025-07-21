@@ -300,10 +300,11 @@ function* scheduleGenerator(i, schedule, pools, constraint) {
 
 // Usage
 }
-console.log("Hello");
-let cur_gen = null;
 
+let cur_gen = null;
+console.log("hey");
 onmessage = (e) => {
+
     console.log("Received");
     // Two types of messages:
     // 1. Continue + amount
@@ -314,12 +315,14 @@ onmessage = (e) => {
         pools: e.data['pools'] || null,
         constraint: new Schedule.Constraint(e.data['constraint_json']) || null
     };
+    console.log(self.schedules);
     if (!(gen_config.pools === null || gen_config.constraint === null))
     {
         // create generator - reset previous one
         if (cur_gen !== null)
         {
             cur_gen.return();
+            console.log("Canceled");
         }
         cur_gen = scheduleGenerator(0, new Schedule(), gen_config.pools, gen_config.constraint);
 
@@ -327,16 +330,19 @@ onmessage = (e) => {
     // let schedules = [];
     let schedules_buff = []
     let i = 1;
+    let sent_count = 0;
     for (const sched of cur_gen) {
         // schedules.push(sched);
         schedules_buff.push(sched);
         if (i%buff_size === 0) {
-            postMessage({schedules: schedules_buff, done: false});
+            postMessage({schedules: schedules_buff, done: false, first: sent_count === 0});
+            sent_count++;
             schedules_buff = [];
         }
         i++;
     }
-    postMessage({schedules: schedules_buff, done: true});
+    postMessage({schedules: schedules_buff, done: true, first: sent_count === 0});
+    sent_count++;
     // let is_done = false;
     // for (let i = 0; i < amount; i++) {
     //     let res = cur_gen.next();

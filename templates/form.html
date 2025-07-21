@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Hebrew University Schedule Planner</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='agenda.css') }}">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='agenda.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='fonts.css') }}" rel="stylesheet">
+
 </head>
 <body>
 
@@ -13,72 +15,85 @@
     <!-- Left: Form Section -->
     <div class="form-section">
 
-        <form onsubmit="return validateForm()" method="post" id="requestForm" action="/submit">
+        <form id="requestForm" method="post" onsubmit="return validateForm()">
             <div id="formScroll">
-                <label for="year">שנה</label>
-                <input type="number" id="year" name="year" min="1900" max="2100" value="2025">
+                <div>
+                    <label for="year">שנה</label>
+                    <input id="year" max="2100" min="1900" name="year" type="number" value="2025">
+                </div>
+                <div>
+                    <label for="semesterA">סמסטר א'</label>
+                    <input id="semesterA" name="semester" type="radio" value="SemesterA" checked>
+                    <label for="semesterB">סמסטר ב'</label>
+                    <input id="semesterB" name="semester" type="radio" value="SemesterB">
 
-
-                <label for="semester">סמסטר</label>
-                <input type="text" id="semester" name="semester" pattern="[AB]{1}" value="A">
-
-                <label for="courseNumberInput">מספר הקורס:</label>
-                <div class="course-entry">
-                    <input type="text" id="courseNumberInput" maxlength="6" pattern="\d{1,6}"
-                           placeholder="לדוגמה 80131..." value="">
-                    <button type="button" onclick="addCourse()">הוספה</button>
                 </div>
 
+                <div class="course-entry">
+                    <label for="courseNumberInput">מספר הקורס:</label>
+                    <input id="courseNumberInput" maxlength="6" pattern="\d{1,6}" placeholder="80131..."
+                           type="text" value="">
+                    <button onclick="addCourse()" type="button">הוספה</button>
+                </div>
 
+    <hr>
                 <!-- Hidden input for submission -->
-                <input type="hidden" name="courses" id="coursesHidden">
+                <input id="coursesHidden" name="courses" type="hidden">
 
                 <!-- Display added courses -->
                 <div id="courseList" style="margin-top: 10px;"></div>
 
-
-                <label for="maxDayLength">אורך יום מירבי:</label>
-                <select id="maxDayLength" name="max_day_length"></select>
-
-                <label for="minDayLength">אורך יום מינימלי:</label>
-                <select id="minDayLength" name="min_day_length"></select>
-
-                <label for="minFreeDays">מספר ימים חופשיים מינימלי:</label>
-                <input type="number" id="minFreeDays" name="num_free_days" min="0">
+                <div>
+                    <label for="maxDayLength">אורך יום מירבי:</label>
+                    <select id="maxDayLength" name="max_day_length"></select>
+                </div>
+                <div>
+                    <label for="minDayLength">אורך יום מינימלי:</label>
+                    <select id="minDayLength" name="min_day_length"></select>
+                </div>
+                <div>
+                    <label for="minFreeDays">מספר ימים חופשיים מינימלי:</label>
+                    <input id="minFreeDays" min="0" name="num_free_days" type="number">
+                </div>
 
                 <div style="display: flex; gap: 20px;">
                     <div class="div_label">ימים חופשיים:</div>
                     <div style="text-align: center;">
-                        <label for="cb0">א'</label><input type="checkbox" id="cb0" name="freeDay" value="0">
+                        <label for="cb0">א'</label><input id="cb0" name="freeDay" type="checkbox" value="0">
                     </div>
                     <div style="text-align: center;">
-                        <label for="cb1">ב'</label><input type="checkbox" id="cb1" name="freeDay" value="1">
+                        <label for="cb1">ב'</label><input id="cb1" name="freeDay" type="checkbox" value="1">
                     </div>
                     <div style="text-align: center;">
-                        <label for="cb2">ג'</label><input type="checkbox" id="cb2" name="freeDay" value="2">
+                        <label for="cb2">ג'</label><input id="cb2" name="freeDay" type="checkbox" value="2">
                     </div>
                     <div style="text-align: center;">
-                        <label for="cb3">ד'</label><input type="checkbox" id="cb3" name="freeDay" value="3">
+                        <label for="cb3">ד'</label><input id="cb3" name="freeDay" type="checkbox" value="3">
                     </div>
                     <div style="text-align: center;">
-                        <label for="cb4">ה'</label><input type="checkbox" id="cb4" name="freeDay" value="4">
+                        <label for="cb4">ה'</label><input id="cb4" name="freeDay" type="checkbox" value="4">
                     </div>
                     <div style="text-align: center;">
-                        <label for="cb5">ו'</label><input type="checkbox" id="cb5" name="freeDay" value="5">
+                        <label for="cb5">ו'</label><input id="cb5" name="freeDay" type="checkbox" value="5">
                     </div>
 
                 </div>
 
-                <input type="hidden" name="free_days" id="free_days">
-                <label for="globalStartTime">שעת התחלה מוקדמת ביותר:</label>
-                <select id="globalStartTime" name="globalStartTime"></select>
+                <input id="free_days" name="free_days" type="hidden">
+                <div>
+                    <label for="globalStartTime">שעת התחלה מוקדמת ביותר:</label>
+                    <select id="globalStartTime" name="globalStartTime"></select>
+                </div>
 
                 <div class="grouped">
-                    <label for="dayWithBreakDayLength">אם אורך היום הוא לפחות:</label>
-                    <select id="dayWithBreakDayLength" name="dayWithBreak_DayLength"></select>
-
-                    <label for="dayWithBreakBreakLength">חייבת להיות בו הפסקה באורך לפחות:</label>
-                    <select id="dayWithBreakBreakLength" name="dayWithBreak_BreakLength"></select>
+                    <div>
+                        <label for="dayWithBreakDayLength">אם אורך היום הוא לפחות:</label>
+                        <select id="dayWithBreakDayLength" name="dayWithBreak_DayLength"></select>
+                    </div>
+                    <div>
+                        <label for="dayWithBreakBreakLength">חייבת להיות בו הפסקה באורך לפחות:</label>
+                        <select id="dayWithBreakBreakLength" name="dayWithBreak_BreakLength"></select>
+                    </div>
                 </div>
             </div>
             <div id="errorsContainer"></div>
@@ -90,22 +105,30 @@
             </div>
 
         </form>
-        <div id="colorWheel" class="color-wheel"></div>
+
+        <div class="color-wheel" id="colorWheel"></div>
     </div>
     <!-- Right: Empty Div Section -->
     <div class="preview-section">
         <div id="agendaContainer">
-            <h1>Hebrew University<br>Schedule Planner</h1>
+            <div id="welcome">
+                <span id="welcome_head">בונה מערכת שעות לאוניברסיטה העברית</span>
+                <span id="welcome_head_small">ללא חפיפות</span>
+                <span id="welcome_under">רק נותר לבחור</span>
+
+            </div>
+            <div id="credit">Built by Itai Warshavsky, <a href="https://github.com/iwarshavsky">iwarshavsky@github</a></div>
         </div>
+        <div id="msg_div"></div>
 
 
-        <footer>
+        <footer class="hidden">
             <div>
                 <button id="agenda_prev">אחורה</button>
             </div>
 
             <div id="schedule_number" style="direction: ltr">
-                <span class="input" role="textbox" contenteditable id="cur_schedule_number"></span>
+                <span class="input" contenteditable id="cur_schedule_number" role="textbox"></span>
                 <span id="schedule_total"></span>
 
             </div>
@@ -122,18 +145,16 @@
 </div>
 
 
-<div id="jsonModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-
+<div class="modal" id="jsonModal">
+    <div id="modal-content">
         <div id="editorContainer"></div>
-        <button onclick="deletePoolDict()">🗑 Delete pool_dict</button>
     </div>
 </div>
 
 
 <script src="{{ url_for('static', filename='main.js') }}"></script>
 <script src="{{ url_for('static', filename='export.js') }}"></script>
+<script src="{{ url_for('static', filename='course_editor.js') }}"></script>
 <!--<script src="{{ url_for('static', filename='webworker.js') }}"></script>-->
 </body>
 </html>
