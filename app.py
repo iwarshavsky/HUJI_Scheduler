@@ -114,3 +114,7 @@ def get_course():
 def close_connection(exception):
     print(exception)
     close_db()
+
+
+if __name__ == '__main__':
+    app.run()

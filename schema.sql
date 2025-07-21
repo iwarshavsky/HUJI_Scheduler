@@ -1,6 +1,4 @@
-DROP TABLE IF EXISTS course_cache;
-
-CREATE TABLE "course_cache" (
+CREATE TABLE IF NOT EXISTS "course_cache" (
 	"course_num"	INTEGER,
 	"year"	INTEGER,
 	"semester"	INTEGER,
