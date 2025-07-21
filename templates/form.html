@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Hebrew University Schedule Planner</title>
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/agenda.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static/css', filename='style.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static/css', filename='agenda.css') }}" rel="stylesheet">
 
 <style>
     @font-face {
     font-family: 'os_luizi_round_ffcregular';
         {{ url_for('static', filename='') }}
-    src: url("{{ url_for('static', filename='css/os_luizi_round-ffc-web.woff2') }}") format('woff2'),
-         url("{{ url_for('static', filename='css/os_luizi_round-ffc-web.woff') }}") format('woff');
+    src: url("{{ url_for('static/css', filename='css/os_luizi_round-ffc-web.woff2') }}") format('woff2'),
+         url("{{ url_for('static/css', filename='css/os_luizi_round-ffc-web.woff') }}") format('woff');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'ozrad';
-    src: url("{{ url_for('static', filename='css/OzradCLM-Bold.otf') }}") format('opentype'),
-         url("{{ url_for('static', filename='css/OzradCLM-Bold.woff') }}") format('woff');
+    src: url("{{ url_for('static/css', filename='OzradCLM-Bold.otf') }}") format('opentype'),
+         url("{{ url_for('static/css', filename='OzradCLM-Bold.woff') }}") format('woff');
     font-weight: normal;
     font-style: normal;
 }
