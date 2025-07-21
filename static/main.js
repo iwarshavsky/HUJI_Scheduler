@@ -1,23 +1,17 @@
 let schedules = [];
 let cur_schedule_id = null;
-function createAgenda(schedule_id) {
+function createAgenda(schedule_id, msg="") {
 
     let container = document.getElementById("agendaContainer");
-    // let footer = document.querySelector('footer');
-    // let [left_footer, center_footer, right_footer, extras_footer] = footer.children;
 
-    // left_footer.innerHTML = "";
-    // center_footer.innerHTML = "";
-    // right_footer.innerHTML = "";
-    // extras_footer.innerHTML = "";
     if (typeof schedule_id === "string") {
         schedule_id = Number(schedule_id) - 1;
     }
     cur_schedule_id = schedule_id;
-    if (schedule_id < 0) {
-        container.innerHTML = "";
-        return;
-    }
+    // if (schedule_id < 0) {
+    //     container.innerHTML = "";
+    //     return;
+    // }
 
     container.innerHTML = `<table id="agenda">
   <colgroup>
@@ -83,6 +77,15 @@ function createAgenda(schedule_id) {
         tbody.appendChild(tr);
     });
 
+    if (schedule_id < 0) {
+        document.querySelector("footer").classList.add("hidden");
+        // Show the message
+        const msg_div = document.getElementById("msg_div");
+        msg_div.innerText = msg;
+        msg_div.classList.add("show");
+        return;
+    }
+    document.querySelector("footer").classList.remove("hidden");
     // Fill events with rowspan and tooltips
     function fillEvent(event, course_num, course_name, lesson_type, group, color) {
         const {days, time_start, time_finish, note, places} = event;
@@ -110,7 +113,10 @@ function createAgenda(schedule_id) {
             td.style.background = responseStore.get(course_num).color;
             td.textContent = `${course_name}\n${lesson_type}`;
 
-            td.title = `Group: ${group}\nPlace: ${places}\nNote: ${note}\n${time_start} - ${time_finish}`;
+            td.title = `קבוצה: ${group}
+מיקום: ${places}
+הערה: ${note}
+            ${time_start} - ${time_finish}`;
         }
 
         // Remove merged cells below
@@ -151,25 +157,6 @@ function createAgenda(schedule_id) {
 }
 
 
-// document.getElementById('getNextBtn_post').addEventListener('click', function () {
-//     fetch('/get/0', {
-//         method: 'POST',
-//         headers: {'Content-Type': 'application/json'},
-//         body: JSON.stringify({"request": 'next'})  // Optional payload
-//     })
-//         .then(res => res.json())
-//         .then(data => {
-//             console.log('Server response:', data);
-//             createAgenda(data);
-//             // You can update the DOM with the response here
-//         })
-//         .catch(err =>
-//             console.error('Error:', err));
-// });
-
-// document.getElementById('getNextBtn_get').addEventListener('click', function () {
-//     sendGetRequest("/get/0");
-// });
 
 let addedCourses = [];
 
@@ -177,11 +164,11 @@ let addedCourses = [];
 function addCourse() {
     const courseNumberInput = document.getElementById("courseNumberInput");
     const yearInput = document.getElementById("year");
-    const semesterInput = document.getElementById("semester");
+    const semesterInput = document.querySelector('input[name="semester"]:checked');
 
     const courseNumber = courseNumberInput.value.trim();
     const year = yearInput.value.trim();
-    const semester = semesterInput.value.trim();
+    const semester = semesterInput.value.replace("Semester"," ").trim();
 
     if (!courseNumber || isNaN(courseNumber) || courseNumber.length > 6) {
         alert("Please enter a valid course number (up to 6 digits).");
@@ -195,17 +182,17 @@ function addCourse() {
 
     sendGetRequest('/get_course', {"year": year, "semester": semester, "id": courseNumber})
         .then(data => {
-            if (data) {
+            if (!data.error) {
                 responseStore.add(courseNumber, data);
                 updateCourseList();
             } else {
-                throw Error("No data")
+                throw Error("הקורס לא קיים")
             }
 
         })
         .catch(error => {
             alert(error.message);
-            console.error('Caught an error:', error.message); // ← Catches your thrown error here
+            // console.error('Caught an error:', error.message); // ← Catches your thrown error here
         });
 
     courseNumberInput.value = "";
@@ -224,8 +211,8 @@ function updateCourseList() {
     courseListDiv.innerHTML = "";
 
     Object.keys(responseStore.data).forEach(course => {
-        console.log(`Key: ${course}`);
-        console.log('Value:', responseStore[course]);
+        // console.log(`Key: ${course}`);
+        // console.log('Value:', responseStore[course]);
         const wrapper = document.createElement("div");
         wrapper.className = "course-item";
 
@@ -267,35 +254,7 @@ function updateCourseList() {
     });
 }
 
-// document.getElementById('requestForm').addEventListener('submit', function (e) {
-//     e.preventDefault();
-//
-//     const formData = new FormData(this);
-//     const jsonData = Object.fromEntries(formData.entries());
-//     jsonData.courses = responseStore.data
-//     fetch('/submit', {
-//         method: 'POST',
-//         headers: {'Content-Type': 'application/json'},
-//         body: JSON.stringify(jsonData)
-//     })
-//         .then(res => res.json())
-//         .then(data => {
-//             const container = document.getElementById('errorsContainer');
-//             container.innerHTML = ''; // Clear previous errors
-//
-//             if (!data.success && data.errors) {
-//                 Object.entries(data.errors).forEach(([key, message]) => {
-//                     const errorDiv = document.createElement('div');
-//                     errorDiv.className = 'error-message'; // Add styles as needed
-//                     errorDiv.textContent = `${key}: ${message}`;
-//                     container.appendChild(errorDiv);
-//                 });
-//             }
-//             if (data.success) {
-//
-//             }
-//         });
-// });
+
 
 
 const responseStore = {
@@ -391,133 +350,32 @@ function validateForm() {
 
 let workingJson = null;
 
+
+document.getElementById("jsonModal").addEventListener("click", function(e) {
+  if (e.target === this) {
+    // Only close if the background itself was clicked
+    closeModal();
+  }
+});
+// function handleClickModal(e) {
+//   if (e.target.id !== "modal-content") {
+//     closeModal();
+//   }
+// }
 function openModal(json) {
     workingJson = json; //= JSON.parse(JSON.stringify(json)); // Deep copy
-    document.getElementById("jsonModal").style.display = "block";
-    renderEditor();
+    document.getElementById("jsonModal").style.display = "flex";
+    // setTimeout(() => {
+    //   document.addEventListener("click", handleClickModal);
+    // }, 0);
+    // document.addEventListener("click",handleClickModal);
+    renderForm();
 }
 
 function closeModal() {
     document.getElementById("jsonModal").style.display = "none";
     workingJson = null;
     updateCourseList();
-}
-
-function renderEditor() {
-    const container = document.getElementById("editorContainer");
-    container.innerHTML = "";
-
-    if (!workingJson?.pool_dict) {
-        container.innerHTML = "<p><strong>No data collected</strong></p>";
-        return;
-    }
-
-
-
-    container.innerHTML += `
-        <div class="edit_course_title">
-        <h3>${workingJson.course_num} - ${workingJson.course_name}</h3>
-        <a href="${workingJson.url}" target="_blank">קישור לשנתון</a>
-        </div>
-        `;
-    for (const [type, groups] of Object.entries(workingJson.pool_dict)) {
-        const typeDiv = document.createElement("div");
-        typeDiv.className = "lesson-type";
-        typeDiv.innerHTML = `<strong>${type}</strong>
-<button onclick="addGroup('${type}')">➕ Add Group</button>`; //
-
-        groups.forEach((group, gIndex) => {
-            const groupDiv = document.createElement("div");
-            groupDiv.className = "group";
-
-            groupDiv.innerHTML = `
-                <div ${group.warnings.length ? 'class="editgroup_warning_div"' : ''}>
-                  ${group.warnings.length ? '<span class=editgroup_warning_div>Some fields haven\'t been properly parsed: ' + group.warnings.join(', ') + '</span>' : ''}
-                  <strong>Group ${group.group}</strong>
-                  <button onclick="deleteGroup('${type}', ${gIndex})">🗑</button>
-                  <button onclick="addEvent('${type}', ${gIndex})">➕ Add Event</button>
-                </div>
-              `;
-
-            group.event_list.forEach((event, eIndex) => {
-                const eventDiv = document.createElement("div");
-                eventDiv.className = "event";
-
-                for (const [key, value] of Object.entries(event)) {
-                    const input = document.createElement("input");
-                    input.value = value;
-                    input.dataset.type = type;
-                    input.dataset.gIndex = gIndex;
-                    input.dataset.eIndex = eIndex;
-                    input.dataset.key = key;
-                    // input.dataset.initialValue = value;
-                    input.onchange = handleEdit;
-                    eventDiv.appendChild(input);
-                }
-
-                const delBtn = document.createElement("button");
-                delBtn.textContent = "❌";
-                delBtn.onclick = () => deleteEvent(type, gIndex, eIndex);
-                eventDiv.appendChild(delBtn);
-
-                groupDiv.appendChild(eventDiv);
-            });
-
-            typeDiv.appendChild(groupDiv);
-        });
-
-        container.appendChild(typeDiv);
-    }
-}
-
-function handleEdit(e) {
-    const {type, gIndex, eIndex, key} = e.target.dataset;
-    let val = e.target.value;
-    if (!isNaN(val)) val = Number(val);
-    if (val !== workingJson.pool_dict[type][gIndex].event_list[eIndex][key])
-    {
-        workingJson.edited = true;
-    }
-    workingJson.pool_dict[type][gIndex].event_list[eIndex][key] = val;
-}
-
-function deleteEvent(type, gIndex, eIndex) {
-    workingJson.pool_dict[type][gIndex].event_list.splice(eIndex, 1);
-    workingJson.edited = true;
-    renderEditor();
-}
-
-function deleteGroup(type, gIndex) {
-    workingJson.pool_dict[type].splice(gIndex, 1);
-    if (workingJson.pool_dict[type].length === 0) delete workingJson.pool_dict[type];
-    workingJson.edited = true;
-    renderEditor();
-}
-
-function deletePoolDict() {
-    delete workingJson.pool_dict;
-    closeModal();
-}
-
-function addEvent(type, gIndex) {
-    const defaultEvent = {
-        days: 0, time_start: 0, time_finish: 0,
-        lesson: type, places: "", note: ""
-    };
-    workingJson.pool_dict[type][gIndex].event_list.push(defaultEvent);
-    renderEditor();
-}
-
-function addGroup(type) {
-    const defaultGroup = {
-        course_num: workingJson.course || "",
-        group: "?", semester: workingJson.semester || 0,
-        lesson_type: type,
-        event_list: [],
-        warnings: []
-    };
-    workingJson.pool_dict[type].push(defaultGroup);
-    renderEditor();
 }
 
 document.getElementById('requestForm').addEventListener("keydown", function (key) {
@@ -546,7 +404,7 @@ document.getElementById('requestForm').addEventListener("keydown", function (key
 
       let x = e.clientX;
       let y = e.clientY;
-      console.log(x,y);
+      // console.log(x,y);
 
       // Calculate the full dimensions of the color wheel
       const diameter = radius * 2 + 30; // +30 for dot size and spacing
@@ -589,11 +447,12 @@ document.getElementById('requestForm').addEventListener("keydown", function (key
     });
 // Sample JSON to test
 // const validSchedules = [];
-const schedule_worker = new Worker("/static/webworker.js");
+let schedule_worker = new Worker("/static/webworker.js");
 const form_results_num = document.getElementById("schedule_total");
 schedule_worker.onmessage = (event) => {
-  const is_first = schedules.length === 0;
+  const is_first = event.data.first;
   const is_done = event.data.done;
+  if (is_first) schedules = [];
     schedules = schedules.concat(event.data.schedules);
     if (is_first) {
         if (schedules.length > 0) {
@@ -601,10 +460,11 @@ schedule_worker.onmessage = (event) => {
             console.log("This is the first");
         }
         else {
+            createAgenda(-1,"אין תוצאות :(");
             console.log("No results");
         }
     } else {
-        console.log("After first")
+        // console.log("After first")
     }
 
     if (is_done) {
@@ -620,7 +480,7 @@ schedule_worker.onerror = (error) => {
 };
 
 
-
+schedule_worker = new Worker("/static/webworker.js");
 document.getElementById('requestForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
@@ -629,7 +489,9 @@ document.getElementById('requestForm').addEventListener('submit', function (e) {
       .join(",");
 
 
+
     const formData = new FormData(this);
+
     const constraint_jsonData = Object.fromEntries(formData.entries());
 
 
@@ -641,8 +503,9 @@ document.getElementById('requestForm').addEventListener('submit', function (e) {
         }
     }
     schedules = [];
-    schedule_worker.postMessage({pools: _pools, constraint_json: constraint_jsonData, buff_size: 5});
 
+    schedule_worker.postMessage({pools: _pools, constraint_json: constraint_jsonData, buff_size: 5});
+    // createAgenda(-1);
     // for (const sched of scheduleGenerator(0, new Schedule(), _pools, constraint)) {
     //     validSchedules.push(sched);
     // }
@@ -698,3 +561,33 @@ course_number_input.onkeydown = (e) => {
     // return;
   }
 }
+
+// document.getElementById('requestForm').addEventListener('submit', function (e) {
+//     e.preventDefault();
+//
+//     const formData = new FormData(this);
+//     const jsonData = Object.fromEntries(formData.entries());
+//     jsonData.courses = responseStore.data
+//     fetch('/submit', {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(jsonData)
+//     })
+//         .then(res => res.json())
+//         .then(data => {
+//             const container = document.getElementById('errorsContainer');
+//             container.innerHTML = ''; // Clear previous errors
+//
+//             if (!data.success && data.errors) {
+//                 Object.entries(data.errors).forEach(([key, message]) => {
+//                     const errorDiv = document.createElement('div');
+//                     errorDiv.className = 'error-message'; // Add styles as needed
+//                     errorDiv.textContent = `${key}: ${message}`;
+//                     container.appendChild(errorDiv);
+//                 });
+//             }
+//             if (data.success) {
+//
+//             }
+//         });
+// });
