@@ -306,9 +306,10 @@
   border: 1px solid #ddd;
   padding: 3px 4px;
   white-space: nowrap;
-  max-width: 8ch;
+  max-width: 10ch;
   overflow: hidden;
   text-overflow: ellipsis;
+    text-align: center;
 }
 .table-modal th {
   background-color: #f2f2f2;
