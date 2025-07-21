@@ -1,15 +1,15 @@
 @font-face {
     font-family: 'os_luizi_round_ffcregular';
         {{ url_for('static', filename='') }}
-    src: url("../fonts/os_luizi_round-ffc-web.woff2") format('woff2'),
-         url("../fonts/os_luizi_round-ffc-web.woff") format('woff');
+    src: url(../fonts/os_luizi_round-ffc-web.woff2) format('woff2'),
+         url(../fonts/os_luizi_round-ffc-web.woff) format('woff');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'ozrad';
-    src: url("../fonts/OzradCLM-Bold.otf") format('opentype'),
-         url("../fonts/OzradCLM-Bold.woff") format('woff');
+    src: url(../fonts/OzradCLM-Bold.otf) format('opentype'),
+         url(../fonts/OzradCLM-Bold.woff) format('woff');
     font-weight: normal;
     font-style: normal;
 }
