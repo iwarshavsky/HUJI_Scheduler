@@ -214,6 +214,7 @@
             width: max-content;
             max-height: 80%;
             overflow-y: auto;
+            height:min-content;
         }
 
         .close {
@@ -396,31 +397,27 @@ html {
 }
 
 
-.tooltip {
-  position: relative;
-  display: inline-block;
-  border-bottom: 1px dotted black;
-    cursor: help;
-    height: fit-content;
+.visible {
+    display:block !important;
 }
 
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 300px;
-  background-color: black;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
-
-  /* Position the tooltip */
-  position: absolute;
-  z-index: 1;
-  top: -100%;
-  /*left: 0;*/
-  margin-left: -60px;
+#editorContainer {
+    display: none;
 }
 
-.tooltip:hover .tooltiptext {
-  visibility: visible;
+#form-contact-div {
+    display: none;
+
+}
+
+#help-text-container {
+    display: none;
+}
+#form-contact-div input, #form-contact-div textarea {
+    font-family: system-ui;
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+#contact_form {
+    display: inline-grid;
 }

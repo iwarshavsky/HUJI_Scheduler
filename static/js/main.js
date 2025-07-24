@@ -1,6 +1,7 @@
 let schedules = [];
 let cur_schedule_id = null;
-function createAgenda(schedule_id, msg="") {
+
+function createAgenda(schedule_id, msg = "") {
 
     let container = document.getElementById("agendaContainer");
 
@@ -86,6 +87,7 @@ function createAgenda(schedule_id, msg="") {
         return;
     }
     document.querySelector("footer").classList.remove("hidden");
+
     // Fill events with rowspan and tooltips
     function fillEvent(event, course_num, course_name, lesson_type, group, color) {
         const {days, time_start, time_finish, note, places} = event;
@@ -136,7 +138,6 @@ function createAgenda(schedule_id, msg="") {
     });
 
 
-
     let button_prev = document.getElementById("agenda_prev");
     button_prev.onclick = () => {
         createAgenda(schedule_id - 1)
@@ -157,7 +158,6 @@ function createAgenda(schedule_id, msg="") {
 }
 
 
-
 let addedCourses = [];
 
 
@@ -168,7 +168,7 @@ function addCourse() {
 
     const courseNumber = courseNumberInput.value.trim();
     const year = yearInput.value.trim();
-    const semester = semesterInput.value.replace("Semester"," ").trim();
+    const semester = semesterInput.value.replace("Semester", " ").trim();
 
     if (!courseNumber || isNaN(courseNumber) || courseNumber.length > 6) {
         alert("Please enter a valid course number (up to 6 digits).");
@@ -228,15 +228,14 @@ function updateCourseList() {
                 responseStore.get(course).color = returnedColor;
                 icon.style.background = returnedColor;
             })
-          };
+        };
 
         const number = document.createElement("a");
         number.textContent = `${responseStore.get(course).course_num}: ${responseStore.get(course).course_name}`;
-        number.onclick = () => openModal(responseStore.data[course]);
+        number.onclick = () => openModal_editCourse(responseStore.data[course]);
 
         label.appendChild(icon);
         label.appendChild(number);
-
 
 
         const removeBtn = document.createElement("button");
@@ -253,8 +252,6 @@ function updateCourseList() {
         courseListDiv.appendChild(wrapper);
     });
 }
-
-
 
 
 const responseStore = {
@@ -366,29 +363,44 @@ function validateForm() {
 let workingJson = null;
 
 
-document.getElementById("jsonModal").addEventListener("click", function(e) {
-  if (e.target === this) {
-    // Only close if the background itself was clicked
-    closeModal();
-  }
+document.getElementById("jsonModal").addEventListener("click", function (e) {
+    if (e.target === this) {
+        // Only close if the background itself was clicked
+        closeModal();
+    }
 });
 // function handleClickModal(e) {
 //   if (e.target.id !== "modal-content") {
 //     closeModal();
 //   }
 // }
-function openModal(json) {
+
+function openModal_contact() {
+    document.getElementById("contact_form").reset();
+    document.getElementById("jsonModal").style.display = "flex";
+    document.getElementById("form-contact-div").classList.add("visible");
+}
+
+function openModal_help() {
+    document.getElementById("jsonModal").style.display = "flex";
+    document.getElementById("help-text-container").classList.add("visible");
+}
+
+
+function openModal_editCourse(json) {
     workingJson = json; //= JSON.parse(JSON.stringify(json)); // Deep copy
     document.getElementById("jsonModal").style.display = "flex";
-    // setTimeout(() => {
-    //   document.addEventListener("click", handleClickModal);
-    // }, 0);
-    // document.addEventListener("click",handleClickModal);
+    document.getElementById("editorContainer").classList.add("visible");
+
     renderForm();
 }
 
 function closeModal() {
     document.getElementById("jsonModal").style.display = "none";
+    document.getElementById("editorContainer").classList.remove("visible");
+    document.getElementById("form-contact-div").classList.remove("visible");
+    document.getElementById("help-text-container").classList.remove("visible");
+
     workingJson = null;
     updateCourseList();
 }
@@ -401,44 +413,44 @@ document.getElementById('requestForm').addEventListener("keydown", function (key
 });
 
 
-    const colors = [
-      "#ff4f00", "#ffffff", "#536ff5", "#1cc21c", "#e5e50a", "#c91313", "#ff00ff", "#00ffff", ""
-    ];
+const colors = [
+    "#ff4f00", "#ffffff", "#536ff5", "#1cc21c", "#e5e50a", "#c91313", "#ff00ff", "#00ffff", ""
+];
 
-    const colorWheel = document.getElementById("colorWheel");
-    const colorButton = document.getElementById("colorButton");
+const colorWheel = document.getElementById("colorWheel");
+const colorButton = document.getElementById("colorButton");
 
-    function showColorWheel(e, callback) {
-      colorWheel.innerHTML = ""; // clear previous dots
-      const numColors = colors.length;
+function showColorWheel(e, callback) {
+    colorWheel.innerHTML = ""; // clear previous dots
+    const numColors = colors.length;
 
-      // Dynamically calculate radius based on number of colors
-      const minRadius = 40;
-      const maxRadius = 80;
-      const radius = Math.max(minRadius, Math.min(maxRadius, numColors * 6));
+    // Dynamically calculate radius based on number of colors
+    const minRadius = 40;
+    const maxRadius = 80;
+    const radius = Math.max(minRadius, Math.min(maxRadius, numColors * 6));
 
-      let x = e.clientX;
-      let y = e.clientY;
-      // console.log(x,y);
+    let x = e.clientX;
+    let y = e.clientY;
+    // console.log(x,y);
 
-      // Calculate the full dimensions of the color wheel
-      const diameter = radius * 2 + 30; // +30 for dot size and spacing
+    // Calculate the full dimensions of the color wheel
+    const diameter = radius * 2 + 30; // +30 for dot size and spacing
 
-      // Clamp position to keep the wheel fully within viewport
-      const padding = 10;
-      // x = Math.max(padding + diameter / 2, Math.min(window.innerWidth - diameter / 2 - padding, x));
-      // y = Math.max(padding + diameter / 2, Math.min(window.innerHeight - diameter / 2 - padding, y));
+    // Clamp position to keep the wheel fully within viewport
+    const padding = 10;
+    // x = Math.max(padding + diameter / 2, Math.min(window.innerWidth - diameter / 2 - padding, x));
+    // y = Math.max(padding + diameter / 2, Math.min(window.innerHeight - diameter / 2 - padding, y));
 
-      colorWheel.style.left = `${x}px`;
-      colorWheel.style.top = `${y}px`;
-      colorWheel.style.transform = "translate(-50%, -50%)";
-      colorWheel.style.position = "fixed";
-      colorWheel.style.display = "block";
+    colorWheel.style.left = `${x}px`;
+    colorWheel.style.top = `${y}px`;
+    colorWheel.style.transform = "translate(-50%, -50%)";
+    colorWheel.style.position = "fixed";
+    colorWheel.style.display = "block";
 
-      const centerX = 0;
-      const centerY = 0;
+    const centerX = 0;
+    const centerY = 0;
 
-      colors.forEach((color, i) => {
+    colors.forEach((color, i) => {
         const angle = (2 * Math.PI / numColors) * i;
         const dotX = centerX + radius * Math.cos(angle) - 15;
         const dotY = centerY + radius * Math.sin(angle) - 15;
@@ -450,32 +462,31 @@ document.getElementById('requestForm').addEventListener("keydown", function (key
         dot.style.top = `${dotY}px`;
 
         dot.addEventListener("click", () => {
-          callback(color);
+            callback(color);
         });
 
         colorWheel.appendChild(dot);
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      colorWheel.style.display = "none";
     });
+}
+
+document.addEventListener('click', (e) => {
+    colorWheel.style.display = "none";
+});
 // Sample JSON to test
 // const validSchedules = [];
 const schedule_worker = new Worker("/static/js/webworker.js");
 const form_results_num = document.getElementById("schedule_total");
 schedule_worker.onmessage = (event) => {
-  const is_first = event.data.first;
-  const is_done = event.data.done;
-  if (is_first) schedules = [];
+    const is_first = event.data.first;
+    const is_done = event.data.done;
+    if (is_first) schedules = [];
     schedules = schedules.concat(event.data.schedules);
     if (is_first) {
         if (schedules.length > 0) {
             createAgenda(0);
             console.log("This is the first");
-        }
-        else {
-            createAgenda(-1,"אין תוצאות :(");
+        } else {
+            createAgenda(-1, "אין תוצאות :(");
             console.log("No results");
         }
     } else {
@@ -486,22 +497,21 @@ schedule_worker.onmessage = (event) => {
         console.log("Is done");
     }
     form_results_num.innerText = `/${schedules.length}`;
-  // console.log(`Got: ${event.data}`);
+    // console.log(`Got: ${event.data}`);
 };
 
 schedule_worker.onerror = (error) => {
-  console.log(`Worker error: ${error.message}`);
-  throw error;
+    console.log(`Worker error: ${error.message}`);
+    throw error;
 };
-
 
 
 document.getElementById('requestForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
-  document.getElementById("free_days").value = [...document.querySelectorAll('input[name="freeDay"]:checked')]
-      .map(cb => cb.value)
-      .join(",");
+    document.getElementById("free_days").value = [...document.querySelectorAll('input[name="freeDay"]:checked')]
+        .map(cb => cb.value)
+        .join(",");
 
 
     const formData = new FormData(this);
@@ -519,89 +529,79 @@ document.getElementById('requestForm').addEventListener('submit', function (e) {
     schedules = [];
 
     schedule_worker.postMessage({pools: _pools, constraint_json: constraint_jsonData, buff_size: 5});
-    // createAgenda(-1);
-    // for (const sched of scheduleGenerator(0, new Schedule(), _pools, constraint)) {
-    //     validSchedules.push(sched);
-    // }
-    // TODO: webworker
-    // schedules = validSchedules;
-    // if (validSchedules.length > 0) {
-    //     createAgenda(0);
-    // } else {
-    //     createAgenda(-1);
-    // }
-    // A non colliding schedule will include one element from each index of pool_arr
-    // with no collisions
-    // console.log(validSchedules);
+
 });
 
 let cur_number_el = document.getElementById("cur_schedule_number");
 let course_number_input = document.getElementById("courseNumberInput");
 
 cur_number_el.onkeydown = (e) => {
-      if (
-    e.key === "Enter"
-  ) {
-    e.preventDefault(); // Prevent line break
-          const cur_val = cur_number_el.innerText.trim();
-          // Send it as a string, createAgenda won't add 1 to it.
-          cur_number_el.innerText = "";
-    createAgenda(cur_val);
-    return;
-  }
+    if (
+        e.key === "Enter"
+    ) {
+        e.preventDefault(); // Prevent line break
+        const cur_val = cur_number_el.innerText.trim();
+        // Send it as a string, createAgenda won't add 1 to it.
+        cur_number_el.innerText = "";
+        createAgenda(cur_val);
+        return;
+    }
 
-  const allowedKeys = [
-    "Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab",
-    "Home", "End"
-  ];
+    const allowedKeys = [
+        "Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab",
+        "Home", "End"
+    ];
 
-  if (allowedKeys.includes(e.key)) return;
+    if (allowedKeys.includes(e.key)) return;
 
-  // Allow digits only
-  if (!/^\d$/.test(e.key)) {
-    e.preventDefault();
-  }
+    // Allow digits only
+    if (!/^\d$/.test(e.key)) {
+        e.preventDefault();
+    }
 }
 
 course_number_input.onkeydown = (e) => {
-  if (
-    e.key === "Enter"
-  ) {
-    e.preventDefault(); // Prevent line break
-          // const cur_val = cur_number_el.innerText.trim();
-          // // Send it as a string, createAgenda won't add 1 to it.
-          // cur_number_el.innerText = "";
-    addCourse();
-    // return;
-  }
+    if (
+        e.key === "Enter"
+    ) {
+        e.preventDefault(); // Prevent line break
+        // const cur_val = cur_number_el.innerText.trim();
+        // // Send it as a string, createAgenda won't add 1 to it.
+        // cur_number_el.innerText = "";
+        addCourse();
+        // return;
+    }
 }
 
-// document.getElementById('requestForm').addEventListener('submit', function (e) {
-//     e.preventDefault();
-//
-//     const formData = new FormData(this);
-//     const jsonData = Object.fromEntries(formData.entries());
-//     jsonData.courses = responseStore.data
-//     fetch('/submit', {
-//         method: 'POST',
-//         headers: {'Content-Type': 'application/json'},
-//         body: JSON.stringify(jsonData)
-//     })
-//         .then(res => res.json())
-//         .then(data => {
-//             const container = document.getElementById('errorsContainer');
-//             container.innerHTML = ''; // Clear previous errors
-//
-//             if (!data.success && data.errors) {
-//                 Object.entries(data.errors).forEach(([key, message]) => {
-//                     const errorDiv = document.createElement('div');
-//                     errorDiv.className = 'error-message'; // Add styles as needed
-//                     errorDiv.textContent = `${key}: ${message}`;
-//                     container.appendChild(errorDiv);
-//                 });
-//             }
-//             if (data.success) {
-//
-//             }
-//         });
-// });
+document.getElementById("contact_form").addEventListener('submit', function (e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const validateEmail = (email) => {
+        return String(email)
+            .toLowerCase()
+            .match(
+                /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+            );
+    };
+    if (!validateEmail(formData.get('contact_email'))) {
+        alert("כתובת המייל לא תקינה");
+        return;
+    }
+
+    fetch(e.target.action, {
+        method: 'POST',
+        body: formData // event.target is the form
+    }).then((response) => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.text(); // or response.text() or whatever the server sends
+    }).then((body) => {
+        alert("ההודעה נשלחה!");
+        closeModal();
+    }).catch((error) => {
+        console.log(error);
+    });
+
+
+});

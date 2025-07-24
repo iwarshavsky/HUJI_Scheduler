@@ -1,16 +1,28 @@
 import json
 import uuid
-
+import re
 from flask import (Flask, request, session, flash, g, send_from_directory, redirect, url_for, Response,
                    stream_with_context, jsonify, render_template, send_file, abort)
+from flask_mail import Mail, Message
 
 from schedule_generator import *
 from datetime import datetime, date
 from db import *
 
+
 app = Flask(__name__)
+
+# configuration of mail
+app.config['MAIL_SERVER']   = os.environ["EMAIL_SERVER"]
+app.config['MAIL_PORT']     = os.environ["EMAIL_PORT"]
+app.config['MAIL_USERNAME'] = os.environ["EMAIL_ADDRESS"]
+app.config['MAIL_PASSWORD'] = os.environ["EMAIL_PWD"]
+app.config['MAIL_USE_TLS']  = os.environ["EMAIL_USE_TLS"]
+app.config['MAIL_USE_SSL']  = os.environ["EMAIL_USE_SSL"]
+mail = Mail(app)
+
 app.config.from_mapping(
-    SECRET_KEY='dev',
+    SECRET_KEY=os.getenv("KEY"),
     JSON_AS_ASCII=False
 )
 
@@ -48,7 +60,17 @@ def get_current_year():
     return current_year
 
 
-@app.route('/', methods=['GET', 'POST'])
+def session_required(func):
+    def wrapper(*args, **kwargs):
+        if 'uuid' not in session:
+            abort(400)
+        return func(*args, **kwargs)
+
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+
+@app.route('/', methods=['GET'])
 def home():
     init_db()
     get_db()
@@ -59,7 +81,7 @@ def home():
 
 
 @app.route('/get_course', methods=['GET', 'POST'])
-# @session_required
+@session_required
 def get_course():
     errors = {}
     data = {}
@@ -117,5 +139,39 @@ def close_connection(exception):
     close_db()
 
 
+@app.route('/contact', methods=['POST'])
+@session_required
+def contact():
+    # print(request.data)
+    email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
+    if re.fullmatch(email_regex, request.form["contact_email"]):
+
+        msg = Message(
+            f'HUJI Scheduler - message from {request.form["contact_name"]}',
+            sender=os.getenv("EMAIL_ADDRESS"),
+            recipients=[os.getenv("EMAIL_ADDRESS")]
+        )
+        msg.reply_to = request.form["contact_email"]
+        msg.body = request.form["contact_message"]
+        mail.send(msg)
+        return 'Sent'
+    abort(400)
+
+# Catch ALL errors (HTTP and internal exceptions)
+@app.errorhandler(Exception)
+def handle_all_errors(e):
+    return """
+    <!doctype html>
+    <html>
+    <head><title>Error</title></head>
+    <body>
+        <h1>Oops! Something went wrong.</h1>
+        <p>The page you're looking for doesn't exist or an error occurred.</p>
+    </body>
+    </html>
+    """, getattr(e, 'code', 500)  # Use e.code if available (e.g. 404), else 500
+
 if __name__ == '__main__':
+    print("hi")
+
     app.run()
