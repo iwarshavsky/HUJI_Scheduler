@@ -11,7 +11,8 @@ from db import *
 
 
 app = Flask(__name__)
-
+for name, value in os.environ.items():
+    print("{0}: {1}".format(name, value))
 # configuration of mail
 app.config['MAIL_SERVER']   = os.environ["EMAIL_SERVER"]
 app.config['MAIL_PORT']     = os.environ["EMAIL_PORT"]
