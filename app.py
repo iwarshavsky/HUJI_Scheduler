@@ -8,9 +8,9 @@ from flask_mail import Mail, Message
 from schedule_generator import *
 from datetime import datetime, date
 from db import *
-from dotenv import load_dotenv
-
-load_dotenv()
+# from dotenv import load_dotenv
+#
+# load_dotenv()
 
 app = Flask(__name__)
 for name, value in os.environ.items():
