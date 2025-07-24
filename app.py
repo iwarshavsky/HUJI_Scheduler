@@ -8,13 +8,9 @@ from flask_mail import Mail, Message
 from schedule_generator import *
 from datetime import datetime, date
 from db import *
-# from dotenv import load_dotenv
-#
-# load_dotenv()
 
 app = Flask(__name__)
-for name, value in os.environ.items():
-    print("{0}: {1}".format(name, value))
+
 # configuration of mail
 app.config['MAIL_SERVER']   = os.environ["EMAIL_SERVER"]
 app.config['MAIL_PORT']     = os.environ["EMAIL_PORT"]
