@@ -78,7 +78,7 @@ def home():
     return render_template('form.html', current_year=get_current_year())
 
 
-@app.route('/get_course', methods=['GET', 'POST'])
+@app.route('/get_course', methods=['GET'])
 @session_required
 def get_course():
     errors = {}
@@ -164,7 +164,7 @@ def contact():
         return 'Sent'
     abort(400)
 
-@app.route('/log', methods=['POST'])
+@app.route('/', methods=['POST'])
 @session_required
 def log(from_server_function=False, passed_kwargs=None):
     if from_server_function:
