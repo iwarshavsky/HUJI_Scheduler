@@ -488,6 +488,7 @@ schedule_worker.onmessage = (event) => {
         } else {
             createAgenda(-1, "אין תוצאות :(");
             console.log("No results");
+            log_stats({action: "build schedules", result: {count: 0}, config: {constraints:constraint_jsonData, courses:Object.keys(responseStore.data)}});
         }
     } else {
         console.log("After first")
@@ -497,6 +498,7 @@ schedule_worker.onmessage = (event) => {
         console.log("Is done");
     }
     form_results_num.innerText = `/${schedules.length}`;
+    log_stats({action: "build schedules", result: {count: schedules.length}, config: {constraints: constraint_jsonData, courses:Object.keys(responseStore.data)}});
     // console.log(`Got: ${event.data}`);
 };
 
@@ -505,6 +507,7 @@ schedule_worker.onerror = (error) => {
     throw error;
 };
 
+let constraint_jsonData = null;
 
 document.getElementById('requestForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -516,7 +519,7 @@ document.getElementById('requestForm').addEventListener('submit', function (e) {
 
     const formData = new FormData(this);
 
-    const constraint_jsonData = Object.fromEntries(formData.entries());
+    constraint_jsonData = Object.fromEntries(formData.entries());
 
 
     let _pools = [];
@@ -605,3 +608,27 @@ document.getElementById("contact_form").addEventListener('submit', function (e) 
 
 
 });
+
+function log_stats(data = {}) {
+    fetch("/log", {
+        method: 'POST',
+        body: JSON.stringify(data),
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+    }).then((response) => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.text(); // or response.text() or whatever the server sends
+    }).then((body) => {
+        console.log("stats sent");
+    }).catch((error) => {
+        console.log(error);
+    });
+}
+
+document.getElementById("github").onclick = (e) => {
+    log_stats({action:"github"});
+}

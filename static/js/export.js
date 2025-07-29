@@ -15,6 +15,7 @@ function addScript(src) {
 
 
 async function exportStyledTableToExcel(tableId, filename = "table.xlsx") {
+    log_stats({action:"Export to excel", result:"", config:""})
     const scripts = ["https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js",
         "https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"];
     for (const src of scripts) {
@@ -132,6 +133,7 @@ function mapVerticalAlign(align) {
 
 
 function exportICS() {
+    log_stats({action:"Export to ICS", result:"", config:""})
     const data = schedules[cur_schedule_id].blocks;
 
     const daysMap = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
