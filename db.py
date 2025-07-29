@@ -18,7 +18,9 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         # os.environ["DATABASE_URL"]
-
+        print("#########################")
+        print(os.environ["DATABASE_URL"])
+        print("#########################")
         db = g._database = psycopg2.connect(os.environ["DATABASE_URL"])
         """
         database=os.environ["PGDATABASE"],

@@ -11,6 +11,7 @@ from db import *
 
 app = Flask(__name__)
 
+# configuration of mail
 app.config['MAIL_SERVER'] = os.environ["EMAIL_SERVER"]
 app.config['MAIL_PORT'] = os.environ["EMAIL_PORT"]
 app.config['MAIL_USERNAME'] = os.environ["EMAIL_ADDRESS"]
@@ -73,7 +74,7 @@ def home():
     session.clear()
     session['uuid'] = uuid.uuid4().hex
     log(from_server_function=True, passed_kwargs={"action": "entered", "result": "", "config": {}})
-    # CLEAN OLD FILES
+
     return render_template('form.html', current_year=get_current_year())
 
 
@@ -148,9 +149,7 @@ def close_connection(exception):
 @app.route('/contact', methods=['POST'])
 @session_required
 def contact():
-    # configuration of mail
 
-    # print(request.data)
     email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
     if re.fullmatch(email_regex, request.form["contact_email"]):
 
@@ -191,18 +190,18 @@ def log(from_server_function=False, passed_kwargs=None):
 
 
 # Catch ALL errors (HTTP and internal exceptions)
-# @app.errorhandler(Exception)
-# def handle_all_errors(e):
-#     return """
-#     <!doctype html>
-#     <html>
-#     <head><title>Error</title></head>
-#     <body>
-#         <h1>Oops! Something went wrong.</h1>
-#         <p>The page you're looking for doesn't exist or an error occurred.</p>
-#     </body>
-#     </html>
-#     """, getattr(e, 'code', 500)  # Use e.code if available (e.g. 404), else 500
+@app.errorhandler(Exception)
+def handle_all_errors(e):
+    return """
+    <!doctype html>
+    <html>
+    <head><title>Error</title></head>
+    <body>
+        <h1>Oops! Something went wrong.</h1>
+        <p>The page you're looking for doesn't exist or an error occurred.</p>
+    </body>
+    </html>
+    """, getattr(e, 'code', 500)  # Use e.code if available (e.g. 404), else 500
 
 if __name__ == '__main__':
     app.run()

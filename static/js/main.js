@@ -496,9 +496,10 @@ schedule_worker.onmessage = (event) => {
 
     if (is_done) {
         console.log("Is done");
+        log_stats({action: "build schedules", result: {count: schedules.length}, config: {constraints: constraint_jsonData, courses:Object.keys(responseStore.data)}});
     }
     form_results_num.innerText = `/${schedules.length}`;
-    log_stats({action: "build schedules", result: {count: schedules.length}, config: {constraints: constraint_jsonData, courses:Object.keys(responseStore.data)}});
+
     // console.log(`Got: ${event.data}`);
 };
 
