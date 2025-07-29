@@ -19,7 +19,7 @@ def get_db():
     if db is None:
         # os.environ["DATABASE_URL"]
 
-        db = g._database = psycopg2.connect(os.environ["${{ Postgres.DATABASE_URL }}"])
+        db = g._database = psycopg2.connect(os.environ["DATABASE_URL"])
         """
         database=os.environ["PGDATABASE"],
                                             host=os.environ["PGHOST"],
