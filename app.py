@@ -6,18 +6,17 @@ from flask import (Flask, request, session, flash, g, send_from_directory, redir
 from flask_mail import Mail, Message
 
 from schedule_generator import *
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from db import *
 
 app = Flask(__name__)
 
-# configuration of mail
-app.config['MAIL_SERVER']   = os.environ["EMAIL_SERVER"]
-app.config['MAIL_PORT']     = os.environ["EMAIL_PORT"]
+app.config['MAIL_SERVER'] = os.environ["EMAIL_SERVER"]
+app.config['MAIL_PORT'] = os.environ["EMAIL_PORT"]
 app.config['MAIL_USERNAME'] = os.environ["EMAIL_ADDRESS"]
 app.config['MAIL_PASSWORD'] = os.environ["EMAIL_PWD"]
-app.config['MAIL_USE_TLS']  = os.environ["EMAIL_USE_TLS"]
-app.config['MAIL_USE_SSL']  = os.environ["EMAIL_USE_SSL"]
+app.config['MAIL_USE_TLS'] = os.environ["EMAIL_USE_TLS"]
+app.config['MAIL_USE_SSL'] = os.environ["EMAIL_USE_SSL"]
 mail = Mail(app)
 
 app.config.from_mapping(
@@ -26,18 +25,12 @@ app.config.from_mapping(
 )
 
 
+def is_too_old(stored_date):
+    delta = (datetime.now(timezone.utc) - stored_date).days
+    return delta >= 1
+
+
 def get_current_year():
-    def has_one_day_passed(sqlite_date_str):
-        # Convert 'YYYY-MM-DD' string to date
-        sqlite_date = datetime.strptime(sqlite_date_str, "%Y-%m-%d").date()
-
-        # Get today's date
-        today = date.today()
-
-        # Calculate difference in days
-        delta = (today - sqlite_date).days
-
-        return delta >= 1
 
     db_response = query_db(
         "SELECT year, date_created FROM course_cache WHERE course_num = 0 and semester = 0", one=True)
@@ -45,16 +38,16 @@ def get_current_year():
         cached_year, date_created = db_response
 
         # Check date
-        if has_one_day_passed(date_created):
+        if is_too_old(date_created):
             year = requestCurrentYear()
             query_db(
-                "UPDATE course_cache SET year = ?, date_created = DATE('now') WHERE course_num=0 and  semester = 0",
+                "UPDATE course_cache SET year = %s, date_created = now() WHERE course_num=0 and  semester = 0",
                 [year], one=True)
             return year
         return cached_year
 
     current_year = requestCurrentYear()
-    query_db("INSERT INTO course_cache (course_num, year, semester, data, date_created) values (0,?,0,'',DATE('now'))",
+    query_db("INSERT INTO course_cache (course_num, year, semester, data, date_created) values (0,%s,0,'',now())",
              [current_year], one=True)
     return current_year
 
@@ -71,10 +64,15 @@ def session_required(func):
 
 @app.route('/', methods=['GET'])
 def home():
-    init_db()
+    # session.clear()
+    # session['uuid'] = uuid.uuid4().hex
+    # log(from_server_function=True, passed_kwargs={"action": "entered", "result": "", "config": {}})
+    # return render_template('maintenance.html', current_year=get_current_year())
+    # init_db()
     get_db()
     session.clear()
     session['uuid'] = uuid.uuid4().hex
+    log(from_server_function=True, passed_kwargs={"action": "entered", "result": "", "config": {}})
     # CLEAN OLD FILES
     return render_template('form.html', current_year=get_current_year())
 
@@ -107,15 +105,21 @@ def get_course():
         data['id'] = request.args['id']
     if errors:
         return Response(response=errors, status=400)
+
+
     cached_response = None
+    date_created = None
     db_response = query_db(
-        "SELECT data, date_created FROM course_cache WHERE course_num = ? and year = ? and semester = ?",
+        "SELECT data, date_created FROM course_cache WHERE course_num = %s and year = %s and semester = %s",
         [data['id'], data['year'], data['semester']], one=True)
 
     if db_response:
         cached_response, date_created = db_response
 
-    if cached_response:
+    if cached_response and not is_too_old(date_created):
+        log(from_server_function=True, passed_kwargs={"action": "get_course", "result": "Cached response",
+                                                      "config": {"course_num": data['id'], "year": data['year'],
+                                                                 "semester": data['semester']}})
         return Response(response=cached_response,
                         status=200,
                         mimetype='application/json')
@@ -123,10 +127,13 @@ def get_course():
     course = Course(data['id'], data['year'], data['semester'])
     data_to_add = json.dumps(course if course.pool_dict else {"error": "No such course exists"}, default=vars)
     # DELETE OLD CACHED
-    query_db("DELETE FROM course_cache WHERE date_created < DATE('now','-1 month')")
+    query_db("DELETE FROM course_cache WHERE date_created < now() - INTERVAL '1 DAY'")
     query_db(
-        "INSERT INTO course_cache (course_num, year, semester, data, date_created) values (?,?,?,?,DATE('now'))",
+        "INSERT INTO course_cache (course_num, year, semester, data, date_created) values (%s,%s,%s,%s,now())",
         [data['id'], data['year'], data['semester'], data_to_add], one=True)
+    log(from_server_function=True, passed_kwargs={"action": "get_course", "result": "Extracted course",
+                                                  "config": {"course_num": data['id'], "year": data['year'],
+                                                             "semester": data['semester']}})
     return Response(response=data_to_add,
                     status=200,
                     mimetype='application/json')
@@ -141,6 +148,8 @@ def close_connection(exception):
 @app.route('/contact', methods=['POST'])
 @session_required
 def contact():
+    # configuration of mail
+
     # print(request.data)
     email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
     if re.fullmatch(email_regex, request.form["contact_email"]):
@@ -156,21 +165,44 @@ def contact():
         return 'Sent'
     abort(400)
 
+@app.route('/log', methods=['POST'])
+@session_required
+def log(from_server_function=False, passed_kwargs=None):
+    if from_server_function:
+        action = passed_kwargs['action']
+        result = passed_kwargs['result']
+        config = passed_kwargs['config']
+    else:
+        data = request.json
+        action = data.get('action') or ""
+        result = data.get('result') or ""
+        config = data.get('config') or ""
+
+    ip_address = ""
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        ip_address = request.environ['REMOTE_ADDR']
+    else:
+        ip_address = request.environ['HTTP_X_FORWARDED_FOR'] # if behind a proxy
+
+    query_db(
+        "INSERT INTO stats (uuid, timestamp, action, result, config, ip_address) values (%s, now(), %s, %s, %s, %s)",
+        [session['uuid'], action, json.dumps(result), json.dumps(config), ip_address])
+    return '', 200
+
+
 # Catch ALL errors (HTTP and internal exceptions)
-@app.errorhandler(Exception)
-def handle_all_errors(e):
-    return """
-    <!doctype html>
-    <html>
-    <head><title>Error</title></head>
-    <body>
-        <h1>Oops! Something went wrong.</h1>
-        <p>The page you're looking for doesn't exist or an error occurred.</p>
-    </body>
-    </html>
-    """, getattr(e, 'code', 500)  # Use e.code if available (e.g. 404), else 500
+# @app.errorhandler(Exception)
+# def handle_all_errors(e):
+#     return """
+#     <!doctype html>
+#     <html>
+#     <head><title>Error</title></head>
+#     <body>
+#         <h1>Oops! Something went wrong.</h1>
+#         <p>The page you're looking for doesn't exist or an error occurred.</p>
+#     </body>
+#     </html>
+#     """, getattr(e, 'code', 500)  # Use e.code if available (e.g. 404), else 500
 
 if __name__ == '__main__':
-    print("hi")
-
     app.run()
