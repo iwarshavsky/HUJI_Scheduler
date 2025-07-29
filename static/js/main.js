@@ -611,7 +611,7 @@ document.getElementById("contact_form").addEventListener('submit', function (e) 
 });
 
 function log_stats(data = {}) {
-    fetch("/log", {
+    fetch("/", {
         method: 'POST',
         body: JSON.stringify(data),
             headers: {
