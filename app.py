@@ -32,7 +32,6 @@ def is_too_old(stored_date):
 
 
 def get_current_year():
-
     db_response = query_db(
         "SELECT year, date_created FROM course_cache WHERE course_num = 0 and semester = 0", one=True)
     if db_response:
@@ -107,7 +106,6 @@ def get_course():
     if errors:
         return Response(response=errors, status=400)
 
-
     cached_response = None
     date_created = None
     db_response = query_db(
@@ -127,11 +125,16 @@ def get_course():
 
     course = Course(data['id'], data['year'], data['semester'])
     data_to_add = json.dumps(course if course.pool_dict else {"error": "No such course exists"}, default=vars)
-    # DELETE OLD CACHED
-    query_db("DELETE FROM course_cache WHERE date_created < now() - INTERVAL '1 DAY'")
-    query_db(
-        "INSERT INTO course_cache (course_num, year, semester, data, date_created) values (%s,%s,%s,%s,now())",
-        [data['id'], data['year'], data['semester'], data_to_add], one=True)
+
+    if cached_response:
+        query_db("UPDATE course_cache SET date_created = now(), data = %s WHERE semester = %s and year = %s",
+                 [data_to_add, data['semester'], data['year']])
+
+    # query_db("DELETE FROM course_cache WHERE date_created < now() - INTERVAL '1 DAY'")
+    else:
+        query_db(
+            "INSERT INTO course_cache (course_num, year, semester, data, date_created) values (%s,%s,%s,%s,now())",
+            [data['id'], data['year'], data['semester'], data_to_add], one=True)
     log(from_server_function=True, passed_kwargs={"action": "get_course", "result": "Extracted course",
                                                   "config": {"course_num": data['id'], "year": data['year'],
                                                              "semester": data['semester']}})
@@ -149,10 +152,8 @@ def close_connection(exception):
 @app.route('/contact', methods=['POST'])
 @session_required
 def contact():
-
     email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
     if re.fullmatch(email_regex, request.form["contact_email"]):
-
         msg = Message(
             f'HUJI Scheduler - message from {request.form["contact_name"]}',
             sender=os.getenv("EMAIL_ADDRESS"),
@@ -163,6 +164,7 @@ def contact():
         mail.send(msg)
         return 'Sent'
     abort(400)
+
 
 @app.route('/', methods=['POST'])
 @session_required
@@ -181,7 +183,7 @@ def log(from_server_function=False, passed_kwargs=None):
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
         ip_address = request.environ['REMOTE_ADDR']
     else:
-        ip_address = request.environ['HTTP_X_FORWARDED_FOR'] # if behind a proxy
+        ip_address = request.environ['HTTP_X_FORWARDED_FOR']  # if behind a proxy
 
     query_db(
         "INSERT INTO stats (uuid, timestamp, action, result, config, ip_address) values (%s, now(), %s, %s, %s, %s)",
@@ -202,6 +204,7 @@ def handle_all_errors(e):
     </body>
     </html>
     """, getattr(e, 'code', 500)  # Use e.code if available (e.g. 404), else 500
+
 
 if __name__ == '__main__':
     app.run()
