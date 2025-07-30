@@ -187,7 +187,7 @@ class CourseBlock:
     def format(key, value):
         try:
             if key == "semester":
-                semester_mapping = {"סמסטר א": 0, "סמסטר ב": 1}
+                semester_mapping = {"סמסטר א": 0, "סמסטר ב": 1, "שנתי": "yearly"}
                 return semester_mapping[value]
             elif key == "days":
                 v = value.replace("יום ", "").replace("'", "")
@@ -245,7 +245,7 @@ class Course:
         # categorize Course Blocks by activity type - we must choose one of each activity type
 
     def add_block(self, courseBlock):
-        if courseBlock.event_list and self.semester == courseBlock.semester:
+        if courseBlock.event_list and (self.semester == courseBlock.semester or courseBlock.semester == "yearly"):
             blocks_of_same_type = self.pool_dict.setdefault(courseBlock.lesson_type, [])
             blocks_of_same_type.append(courseBlock)
 
