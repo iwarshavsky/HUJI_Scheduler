@@ -262,12 +262,12 @@ class Schedule {
             if (
                 this.dayWithBreak_DayLength &&
                 this.dayWithBreak_BreakLength &&
-                Array.isArray(propOther.day_and_break_lengths)
+                Array.isArray(propOther.day_and_break_lengths?.val)
             ) {
-                for (const d of propOther.day_and_break_lengths) {
+                for (const d of propOther.day_and_break_lengths.val) {
                     if (
                         d.day_length > this.dayWithBreak_DayLength &&
-                        d.break_length > this.dayWithBreak_BreakLength
+                        d.break_length < this.dayWithBreak_BreakLength
                     ) {
                         return false;
                     }
