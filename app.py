@@ -124,7 +124,7 @@ def get_course():
                         mimetype='application/json')
 
     course = Course(data['id'], data['year'], data['semester'])
-    data_to_add = json.dumps(course if course.pool_dict else {"error": "No such course exists"}, default=vars)
+    data_to_add = json.dumps(course if course.pool_dict else {"error": "bad course"}, default=vars)
 
     if cached_response:
         query_db("UPDATE course_cache SET date_created = now(), data = %s WHERE semester = %s and year = %s",

@@ -191,7 +191,7 @@ function addCourse() {
 
         })
         .catch(error => {
-            alert(error.message);
+            alert("שגיאה בהוספת הקורס. האם הוא באמת קיים? האם בחרת את הסמסטר הנכון? אם כן והוא גם קיים בשנתון, תכתבו לי ואתקן!");
             // console.error('Caught an error:', error.message); // ← Catches your thrown error here
         });
 
