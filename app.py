@@ -127,8 +127,8 @@ def get_course():
     data_to_add = json.dumps(course if course.pool_dict else {"error": "bad course"}, default=vars)
 
     if cached_response:
-        query_db("UPDATE course_cache SET date_created = now(), data = %s WHERE semester = %s and year = %s",
-                 [data_to_add, data['semester'], data['year']])
+        query_db("UPDATE course_cache SET date_created = now(), data = %s WHERE semester = %s and year = %s and course_num = %s",
+                 [data_to_add, data['semester'], data['year'], data['id']])
 
     # query_db("DELETE FROM course_cache WHERE date_created < now() - INTERVAL '1 DAY'")
     else:
