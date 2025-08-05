@@ -27,11 +27,17 @@ app.config.from_mapping(
 
 
 def is_too_old(stored_date):
+    """
+    Determine whether a cached item is too old.
+    """
     delta = (datetime.now(timezone.utc) - stored_date).days
     return delta >= 1
 
 
 def get_current_year():
+    """
+    Return current scheduling year, get from cache if possible.
+    """
     db_response = query_db(
         "SELECT year, date_created FROM course_cache WHERE course_num = 0 and semester = 0", one=True)
     if db_response:
@@ -53,6 +59,9 @@ def get_current_year():
 
 
 def session_required(func):
+    """
+    Decorator for enforcing requirement for session to access a server resource
+    """
     def wrapper(*args, **kwargs):
         if 'uuid' not in session:
             abort(400)
@@ -64,22 +73,24 @@ def session_required(func):
 
 @app.route('/', methods=['GET'])
 def home():
-    # session.clear()
-    # session['uuid'] = uuid.uuid4().hex
-    # log(from_server_function=True, passed_kwargs={"action": "entered", "result": "", "config": {}})
-    # return render_template('maintenance.html', current_year=get_current_year())
-    # init_db()
+    """
+    Main page
+    :return:
+    """
     get_db()
     session.clear()
     session['uuid'] = uuid.uuid4().hex
     log(from_server_function=True, passed_kwargs={"action": "entered", "result": "", "config": {}})
-
     return render_template('form.html', current_year=get_current_year())
 
 
 @app.route('/get_course', methods=['GET'])
 @session_required
 def get_course():
+    """
+    Get a course from a specific year, semester and with the given id. Load it from cache if it exists.
+    :return:
+    """
     errors = {}
     data = {}
     if 'year' not in request.args:
@@ -145,6 +156,9 @@ def get_course():
 
 @app.teardown_appcontext
 def close_connection(exception):
+    """
+    Handle unexpected termination of connection
+    """
     print(exception)
     close_db()
 
@@ -152,6 +166,9 @@ def close_connection(exception):
 @app.route('/contact', methods=['POST'])
 @session_required
 def contact():
+    """
+    Send me an email.
+    """
     email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
     if re.fullmatch(email_regex, request.form["contact_email"]):
         msg = Message(
@@ -169,6 +186,9 @@ def contact():
 @app.route('/', methods=['POST'])
 @session_required
 def log(from_server_function=False, passed_kwargs=None):
+    """
+    Log user actions for debugging purposes only
+    """
     if from_server_function:
         action = passed_kwargs['action']
         result = passed_kwargs['result']
@@ -194,6 +214,10 @@ def log(from_server_function=False, passed_kwargs=None):
 # Catch ALL errors (HTTP and internal exceptions)
 @app.errorhandler(Exception)
 def handle_all_errors(e):
+    """
+    Generic error page
+    """
+
     return """
     <!doctype html>
     <html>

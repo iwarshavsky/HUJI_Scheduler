@@ -2,6 +2,9 @@ let schedules = [];
 let cur_schedule_id = null;
 
 function createAgenda(schedule_id, msg = "") {
+    /**
+     * Create an agenda based on its number. Recreate it from scratch so we won't need to deal with rowspans.
+     */
 
     let container = document.getElementById("agendaContainer");
 
@@ -162,6 +165,9 @@ let addedCourses = [];
 
 
 function addCourse() {
+    /**
+     * Get course data from server (returned either from cache ot scraped anew).
+     */
     const courseNumberInput = document.getElementById("courseNumberInput");
     const yearInput = document.getElementById("year");
     const semesterInput = document.querySelector('input[name="semester"]:checked');
@@ -192,21 +198,25 @@ function addCourse() {
         })
         .catch(error => {
             alert("שגיאה בהוספת הקורס. האם הוא באמת קיים? האם בחרת את הסמסטר הנכון? אם כן והוא גם קיים בשנתון, תכתבו לי ואתקן!");
-            // console.error('Caught an error:', error.message); // ← Catches your thrown error here
         });
 
     courseNumberInput.value = "";
 
-
 }
 
 function removeCourse(courseNumber) {
+    /**
+     * Remove course from response store and course list.
+     */
     responseStore.delete(courseNumber);
     updateCourseList();
 }
 
 
 function updateCourseList() {
+    /**
+     * Update the courselist in the main page, where courses are added after clicking on "add course"
+     */
     const courseListDiv = document.getElementById("courseList");
     courseListDiv.innerHTML = "";
 
@@ -255,6 +265,9 @@ function updateCourseList() {
 
 
 const responseStore = {
+    /**
+     * Object to store course data.
+     */
     data: {},
 
     add(key, jsonResponse) {
@@ -281,6 +294,10 @@ const responseStore = {
 };
 
 function sendGetRequest(url, params = {}, headers = {}) {
+    /**
+     * Send get request with fetch to server.
+     * @type {string}
+     */
     const queryString = new URLSearchParams(params).toString();
     const fullUrl = queryString ? `${url}?${queryString}` : url;
 
@@ -303,8 +320,11 @@ function sendGetRequest(url, params = {}, headers = {}) {
 
 // Example fetch + store
 
-// Create time options from 00:00 to 16:00 in 15-min intervals
+
 function fillTimeOptions(selectId) {
+    /**
+     * Create time options from 00:00 onwards in 15-min intervals
+     */
     const select = document.getElementById(selectId);
     const placeholder = document.createElement("option");
     placeholder.value = "";
@@ -333,6 +353,9 @@ const timeFields = [
 timeFields.forEach(id => fillTimeOptions(id));
 
 function validateForm() {
+    /**
+     * Validate form before schedule creation.
+     */
     const dayLength = document.getElementById("dayWithBreakDayLength").value;
     const breakLength = document.getElementById("dayWithBreakBreakLength").value;
     const onlyOneFilled = (dayLength && !breakLength) || (!dayLength && breakLength);
@@ -364,16 +387,15 @@ let workingJson = null;
 
 
 document.getElementById("jsonModal").addEventListener("click", function (e) {
+    /**
+     * Close modal if clicked outside of it.
+     */
     if (e.target === this) {
         // Only close if the background itself was clicked
         closeModal();
     }
 });
-// function handleClickModal(e) {
-//   if (e.target.id !== "modal-content") {
-//     closeModal();
-//   }
-// }
+
 
 function openModal_contact() {
     document.getElementById("contact_form").reset();
@@ -472,11 +494,13 @@ function showColorWheel(e, callback) {
 document.addEventListener('click', (e) => {
     colorWheel.style.display = "none";
 });
-// Sample JSON to test
-// const validSchedules = [];
+
 const schedule_worker = new Worker("/static/js/webworker.js");
 const form_results_num = document.getElementById("schedule_total");
 schedule_worker.onmessage = (event) => {
+    /**
+     * Respond to messages from the webworker (deal with schedules).
+     */
     const is_first = event.data.first;
     const is_done = event.data.done;
     if (is_first) schedules = [];
@@ -488,7 +512,11 @@ schedule_worker.onmessage = (event) => {
         } else {
             createAgenda(-1, "אין תוצאות :(");
             console.log("No results");
-            log_stats({action: "build schedules", result: {count: 0}, config: {constraints:constraint_jsonData, courses:Object.keys(responseStore.data)}});
+            log_stats({
+                action: "build schedules",
+                result: {count: 0},
+                config: {constraints: constraint_jsonData, courses: Object.keys(responseStore.data)}
+            });
         }
     } else {
         console.log("After first")
@@ -496,11 +524,15 @@ schedule_worker.onmessage = (event) => {
 
     if (is_done) {
         console.log("Is done");
-        log_stats({action: "build schedules", result: {count: schedules.length}, config: {constraints: constraint_jsonData, courses:Object.keys(responseStore.data)}});
+        log_stats({
+            action: "build schedules",
+            result: {count: schedules.length},
+            config: {constraints: constraint_jsonData, courses: Object.keys(responseStore.data)}
+        });
     }
     form_results_num.innerText = `/${schedules.length}`;
 
-    // console.log(`Got: ${event.data}`);
+
 };
 
 schedule_worker.onerror = (error) => {
@@ -511,6 +543,9 @@ schedule_worker.onerror = (error) => {
 let constraint_jsonData = null;
 
 document.getElementById('requestForm').addEventListener('submit', function (e) {
+    /**
+     * Call schedule-creater webworker with data from form.
+     */
     e.preventDefault();
 
     document.getElementById("free_days").value = [...document.querySelectorAll('input[name="freeDay"]:checked')]
@@ -540,6 +575,9 @@ let cur_number_el = document.getElementById("cur_schedule_number");
 let course_number_input = document.getElementById("courseNumberInput");
 
 cur_number_el.onkeydown = (e) => {
+    /**
+     * Navigation between different schedule numbers
+     */
     if (
         e.key === "Enter"
     ) {
@@ -565,19 +603,21 @@ cur_number_el.onkeydown = (e) => {
 }
 
 course_number_input.onkeydown = (e) => {
+    /**
+     * Course number input - deal with enter.
+     */
     if (
         e.key === "Enter"
     ) {
         e.preventDefault(); // Prevent line break
-        // const cur_val = cur_number_el.innerText.trim();
-        // // Send it as a string, createAgenda won't add 1 to it.
-        // cur_number_el.innerText = "";
         addCourse();
-        // return;
     }
 }
 
 document.getElementById("contact_form").addEventListener('submit', function (e) {
+    /**
+     * Contact form. Validate email format with regex and send.
+     */
     e.preventDefault();
     const formData = new FormData(e.target);
     const validateEmail = (email) => {
@@ -611,13 +651,16 @@ document.getElementById("contact_form").addEventListener('submit', function (e) 
 });
 
 function log_stats(data = {}) {
+    /**
+     * Send basic logs to server for debugging
+     */
     fetch("/", {
         method: 'POST',
         body: JSON.stringify(data),
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
     }).then((response) => {
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -631,5 +674,5 @@ function log_stats(data = {}) {
 }
 
 document.getElementById("github").onclick = (e) => {
-    log_stats({action:"github"});
+    log_stats({action: "github"});
 }

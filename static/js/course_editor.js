@@ -1,8 +1,12 @@
 const dayMap = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "שבת"];
 
-    // Put your full JSON string here
+
 
     function renderForm() {
+      /**
+       * Render a popup form when clicking on a course in the course list
+       * @type {HTMLElement}
+       */
       const container = document.getElementById("editorContainer");
       container.innerHTML = "";
         container.innerHTML += `
@@ -167,12 +171,4 @@ const dayMap = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "שבת"];
       };
       return input;
     }
-
-
-    // function applyChanges() {
-    //   // Apply workingJson.pool_dict to original workingJson.pool_dict object directly
-    //   Object.keys(workingJson.pool_dict).forEach(key => delete workingJson.pool_dict[key]);
-    //   Object.assign(workingJson.pool_dict, JSON.parse(JSON.stringify(workingJson.pool_dict)));
-    //   alert("Changes applied to original object.");
-    // }
 

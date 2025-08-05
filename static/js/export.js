@@ -1,3 +1,7 @@
+/**
+ * Various functions for export in Excel and ICS format.
+ */
+
 function addScript(src) {
     return new Promise((resolve, reject) => {
 

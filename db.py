@@ -17,10 +17,6 @@ DATABASE = 'db.sqlite'
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
-        # os.environ["DATABASE_URL"]
-        print("#########################")
-        print(os.environ["DATABASE_URL"])
-        print("#########################")
         db = g._database = psycopg2.connect(os.environ["DATABASE_URL"])
         """
         database=os.environ["PGDATABASE"],
@@ -33,25 +29,14 @@ def get_db():
     return db
 
 
-# def clean_db(func):
-#     def wrapper(*args, **kwargs):
-#         files_to_delete = func(
-#             "SELECT filename FROM sessions WHERE datetime(last_accessed) < datetime('now', '-10 minutes')")
-#         for file_to_delete in files_to_delete:
-#             try:
-#                 os.remove(file_to_delete)
-#                 print(f"File '{file_to_delete}' deleted successfully.")
-#             except FileNotFoundError:
-#                 print(f"Error: File '{file_to_delete}' not found.")
-#             except Exception as e:
-#                 print(f"An error occurred: {e}")
-#         func(*args, **kwargs)
-#
-#     return wrapper
-
-
-# @clean_db
 def query_db(query, args=(), one=False):
+    """
+    Execute a query in the database.
+    :param query: the query as an SQL string with placeholders.
+    :param args: argments to replace the placeholders in the query
+    :param one: should one row be returned
+    :return: the query result
+    """
     q = query.lower()
     db = get_db()
     cur = db.cursor()
@@ -65,6 +50,7 @@ def query_db(query, args=(), one=False):
     if "select" in q:
         return (rv[0] if rv else None) if one else rv
     return None
+
 
 def close_db():
     db = getattr(g, '_database', None)

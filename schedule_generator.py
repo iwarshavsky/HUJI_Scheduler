@@ -1,15 +1,9 @@
 import re
-from datetime import datetime, timedelta
 from urllib.parse import urlencode
-
 from bs4 import BeautifulSoup
 import requests
 
-import pickle
-
-
-
-# Custom headers
+# Custom headers for GET/POST requests
 headers = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
     "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -31,7 +25,12 @@ headers = {
     "sec-ch-ua-platform": '"Windows"'
 }
 
+
 def requestCurrentYear():
+    """
+    Request the current scheduling year from the website.
+    :return: return max year on the site.
+    """
     response, url = make_request()
     soup = BeautifulSoup(response, 'html.parser')
     numbers = re.findall(r'\d+', soup.select(".subtitle")[0].text)
@@ -41,21 +40,22 @@ def requestCurrentYear():
 
 
 def make_request(course_id=-1, year=-1):
+    """
+    Request course_id from given year from the website.
+    :param course_id:
+    :param year:
+    :return:
+    """
     base_url = "https://shnaton.huji.ac.il/index.php"
 
-    # Get basic page to figure out what year it is
-    if course_id==-1 and year==-1:
+    # Get home page to figure out what year it is
+    if course_id == -1 and year == -1:
         response = requests.get(base_url, headers=headers)
         if response.status_code != 200:
             print("Error. Received code " + str(response.status_code))
             exit()
 
-        # # Save the HTML response
-        # with open("response.html", "w", encoding="utf-8") as f:
-        #     f.write(response.text)
-
         return response.text, base_url
-    # Make the POST request
 
     data = {
         "year": year,
@@ -68,21 +68,14 @@ def make_request(course_id=-1, year=-1):
 
     query_string = urlencode(data)
 
-    # response = requests.post(url, data=data, headers=headers)  # This is a blocking call
     full_url = f"{base_url}?{query_string}"
     response = requests.get(full_url, headers=headers)
     if response.status_code != 200:
         print("Error. Received code " + str(response.status_code))
         exit()
 
-    # # Save the HTML response
-    # with open("response.html", "w", encoding="utf-8") as f:
-    #     f.write(response.text)
-
     return response.text, full_url
 
-
-# TODO pickle?
 
 class CoursePool:
     def __init__(self):
@@ -109,10 +102,6 @@ class CourseBlock:
             formatted_attributes = {key: list(map(lambda item: self.format(key, item), raw_attributes[key])) for key in
                                     keys}
 
-            # formatted_attributes['time_start_slot'] = [self.convert_time_to_slot(t) for t in formatted_attributes['time_start']]
-            # formatted_attributes['time_finish_slot'] = [self.convert_time_to_slot(t) for t in formatted_attributes['time_finish']]
-
-
             self.group = formatted_attributes.get("groups")[0]
             self.semester = formatted_attributes.get("semester")[0]
             # TODO - check for empty rows
@@ -122,7 +111,6 @@ class CourseBlock:
                                                           "note"])
 
             self.lesson_type = formatted_attributes.get("lesson")[0]
-
 
         if data_dict:
             self.group = data_dict['group']
@@ -134,6 +122,9 @@ class CourseBlock:
 
     @staticmethod
     def _extract_raw_attributes(bs_el, attribute_lst):
+        """
+        Get the raw attributes from the given HTML
+        """
         # return bs_el.find("div", {"class": "semester"}).div.string and warning if there was an error parsing
         attribute_dict = {}
         for attribute in attribute_lst:
@@ -144,7 +135,7 @@ class CourseBlock:
         for attribute in attribute_lst:
             l = len(attribute_dict[attribute])
             if l != max_len:
-                attribute_dict[attribute] += ['']*(max_len-l)
+                attribute_dict[attribute] += [''] * (max_len - l)
                 warnings.append(attribute)
         return attribute_dict, warnings
 
@@ -185,6 +176,9 @@ class CourseBlock:
 
     @staticmethod
     def format(key, value):
+        """
+        Format value of type key
+        """
         try:
             if key == "semester":
                 semester_mapping = {"סמסטר א": 0, "סמסטר ב": 1, "שנתי": "yearly"}
@@ -211,7 +205,8 @@ class CourseBlock:
 
 class Course:
     """
-    Multiple course blocks
+    Class for multiple course blocks, contained inside pool_dict. A valid schedule must have one block exactly
+    from each pool in each course's pool_dict.
     """
 
     def __init__(self, course_num, year, semester, pool_dict=None):
@@ -240,15 +235,16 @@ class Course:
                 session_group = CourseBlock(self.course_num, self.course_name, row)
                 self.add_block(session_group)
 
-
-            # print(row)
-        # categorize Course Blocks by activity type - we must choose one of each activity type
-
     def add_block(self, courseBlock):
+        """
+        Add a block to the course, add it to relevant pool
+        """
         if courseBlock.event_list and (self.semester == courseBlock.semester or courseBlock.semester == "yearly"):
             blocks_of_same_type = self.pool_dict.setdefault(courseBlock.lesson_type, [])
             blocks_of_same_type.append(courseBlock)
 
     def get_pools(self):
+        """
+        return pool dict as dictionary
+        """
         return {(self.course_num, key): self.pool_dict[key] for key in self.pool_dict.keys()}
-
