@@ -141,6 +141,24 @@ function exportICS() {
     const data = schedules[cur_schedule_id].blocks;
 
     const daysMap = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+    const semesterDates =
+        {2026:
+                {
+                    "A": ['2025-10-19T00:00:00+03:00', '2026-01-24T00:00:00+03:00'],
+                    "B": ['2026-03-15T00:00:00+03:00', '2026-07-04T00:00:00+03:00']
+                },
+         2027:
+                {
+                    "A": ['2026-10-11T00:00:00+03:00', '2027-01-16T00:00:00+03:00'],
+                    "B": ['2027-03-07T00:00:00+03:00', '2027-06-30T00:00:00+03:00']
+
+                }
+        };
+    const semester = document.querySelector('input[name="semester"]:checked').value.replace("Semester", " ").trim();
+    const year = document.getElementById("year").value.trim();
+    if (!(year in semesterDates)) {
+        alert("שגיאה בייצוא ליומן, בבקשה ליצור קשר!");
+    }
 
     function formatTime(date, time) {
         const [hours, minutes] = time.split(':').map(Number);
@@ -164,14 +182,15 @@ function exportICS() {
     }
 
     // Semester start date (Israel time, adjust as needed)
-    const semesterStartDate = new Date('2024-10-20T00:00:00+03:00');
+    const semesterStartDate = new Date(semesterDates[year][semester][0]); // new Date('2024-10-20T00:00:00+03:00');
+    const semesterEndDate = new Date(semesterDates[year][semester][1]);
 
     let icsContent = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        'PRODID:-//Your School//Course Schedule//EN',
+        'PRODID:-//HUJI//Course Schedule//EN',
         'BEGIN:VTIMEZONE',
         'TZID:Asia/Jerusalem',
         'X-LIC-LOCATION:Asia/Jerusalem',
@@ -209,7 +228,7 @@ function exportICS() {
                 `SUMMARY:${course.course_name} (${event.lesson})`,
                 `DTSTART;TZID=Asia/Jerusalem:${dtstart}`,
                 `DTEND;TZID=Asia/Jerusalem:${dtend}`,
-                `RRULE:FREQ=WEEKLY;BYDAY=${byDay};UNTIL=20250220T235900`,
+                `RRULE:FREQ=WEEKLY;BYDAY=${byDay};UNTIL=${localDateString(semesterEndDate,"23:59")}`,
                 `LOCATION:${event.places}`,
                 `DESCRIPTION:${event.note}`,
                 'END:VEVENT'
